@@ -1,0 +1,79 @@
+name: Cotygodniowy przebieg radaru
+
+# Snapshoty sa nieodtwarzalne wstecz - oferta, ktora dzis znika z agregatora,
+# nie wroci do zadnego archiwum. Kazdy pominiety tydzien to trwala dziura
+# w szeregu czasowym, wiec ten przebieg chodzi sam.
+#
+# Korpus ofert powstaje na runnerze (analiza go potrzebuje) i ginie razem
+# z nim. Do repo ida wylacznie liczby zagregowane.
+
+on:
+  schedule:
+    # Poniedzialek 06:00 UTC (07:00 zima / 08:00 latem w PL) - dane z calego
+    # poprzedniego tygodnia sa juz zaindeksowane.
+    - cron: "0 6 * * 1"
+  workflow_dispatch: # recznie, przyciskiem "Run workflow"
+
+# Jeden przebieg naraz. Dwa rownolegle dopisywalyby do tego samego snapshotu
+# i wzajemnie nadpisywaly manifest.
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          # Projekt nie ma zaleznosci - nie ma czego instalowac ani cache'owac.
+
+      - name: Zbierz snapshot
+        run: python -m radar.collect
+
+      - name: Policz raport
+        run: python -m radar.analyze
+
+      - name: Zacommituj wylacznie dane zagregowane
+        run: |
+          set -euo pipefail
+
+          # Bez --force: gdyby ktorys z tych plikow byl kiedys w .gitignore,
+          # git ma odmowic, a nie go przepchnac. Korpus ofert (jobs.jsonl)
+          # nie jest tu wymieniony i nie moze sie tu znalezc.
+          git add data/reports/
+          git add 'data/snapshots/*/measurements.jsonl'
+          git add 'data/snapshots/*/manifest.json'
+
+          # Pas i szelki: gdyby ktos kiedys zmienil .gitignore albo nazwe pliku,
+          # przebieg ma sie wywalic, a nie po cichu opublikowac cudze ogloszenia.
+          if git diff --cached --name-only | grep -q 'jobs\.jsonl'; then
+            echo "STOP: korpus ofert trafil do commita. Przerywam." >&2
+            exit 1
+          fi
+
+          if git diff --cached --quiet; then
+            echo "Brak zmian - nic do zacommitowania."
+            exit 0
+          fi
+
+          # Tozsamosc bota, nie wlasciciela repo: historia publicznego
+          # repozytorium nie ma po co nosic czyjegos adresu.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git commit -m "Snapshot $(date -u +%Y-%m-%d)" \
+                     -m "Przebieg automatyczny. Tylko dane zagregowane; korpus ofert zostal na runnerze."
+          git push
+
+      - name: Podsumowanie przebiegu
+        if: always()
+        run: python .github/scripts/run_summary.py >> "$GITHUB_STEP_SUMMARY"

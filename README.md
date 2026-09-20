@@ -83,6 +83,22 @@ Dodatkowe zastrzeżenia:
 - Poziom `seniority` pochodzi z klasyfikacji agregatora, nie z treści ogłoszenia.
 - Dopasowanie technologii idzie po frazie w ofercie, więc „Go" czy „R" łapią fałszywe trafienia. Frazy są cudzysłowione, co ogranicza problem, ale go nie usuwa.
 
+## Cotygodniowy przebieg
+
+`.github/workflows/collect.yml` odpala `radar.collect` + `radar.analyze` w każdy
+poniedziałek o 06:00 UTC i commituje wynik. Dashboard na Pages przebudowuje się
+sam po tym commicie, więc dane odświeżają się bez niczyjego udziału.
+
+Można go też odpalić ręcznie: Actions → *Cotygodniowy przebieg radaru* → Run workflow.
+
+Korpus ofert powstaje na runnerze, bo analiza go potrzebuje, i ginie razem z nim.
+Do repo idą wyłącznie liczby zagregowane — commitowane z białej listy ścieżek,
+nie przez `git add -A`. Gdyby korpus mimo to trafił do indeksu, przebieg przerywa
+się błędem zamiast go opublikować.
+
+Uwaga: GitHub wyłącza zaplanowane workflow po 60 dniach bez żadnej aktywności
+w repo. Jeden ręczny run albo commit resetuje ten licznik.
+
 ## Etyka i obciążenie serwera
 
 Serwer MCP jest w bardzo wczesnej becie, udostępniony za darmo przez społeczność. Klient trzyma domyślnie **1 zapytanie na 1,2 s**, robi wykładniczy backoff z jitterem przy błędach i przedstawia się w `User-Agent`. Pełny przebieg to ~190 zapytań, czyli jedna kolekcja dziennie to znikome obciążenie. Nie zwiększaj `--interval` poniżej 1 s.
@@ -90,8 +106,8 @@ Serwer MCP jest w bardzo wczesnej becie, udostępniony za darmo przez społeczno
 ## Status
 
 Wczesna wersja. Zrobione: klient MCP, macierz pomiarowa, zbieranie, metryki, raport JSON,
-dashboard dla pojedynczego snapshotu.
-Następne: szereg czasowy między snapshotami, cotygodniowy przebieg z crona.
+dashboard dla pojedynczego snapshotu, cotygodniowy przebieg z crona.
+Następne: szereg czasowy między snapshotami.
 
 Dashboard celowo nie pokazuje jeszcze trendów — jest jeden snapshot, a wykres czasowy
 z jednym punktem udaje wiedzę, której nie ma. Trendy dochodzą, gdy uzbiera się kilka przebiegów.
