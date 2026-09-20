@@ -19,9 +19,11 @@ import json
 import statistics
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
+
+from .queries import SENIORITIES as SENIORITY_LEVELS
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
@@ -284,15 +286,101 @@ def print_summary(report: dict[str, Any]) -> None:
         print(f"  {anchor} (n={data['sample_size']}): {top}")
 
 
+# Pliki w reports/, ktore NIE sa raportem dziennym. Nazwa raportu to data,
+# wiec kazdy plik spoza tej listy musi sie parsowac jako data - inaczej
+# dopisalby sie do spisu jako snapshot z przyszlosci albo wysypal dashboard.
+NON_REPORT_FILES = {"index.json", "trends.json"}
+
+
+def _report_days(reports_dir: Path) -> list[str]:
+    days = []
+    for path in reports_dir.glob("*.json"):
+        if path.name in NON_REPORT_FILES:
+            continue
+        try:
+            date.fromisoformat(path.stem)
+        except ValueError:
+            continue
+        days.append(path.stem)
+    return sorted(days)
+
+
 def write_reports_index(reports_dir: Path) -> Path:
     """Spis raportow dla dashboardu — inaczej musialby miec date wpisana na sztywno."""
-    days = sorted(p.stem for p in reports_dir.glob("*.json") if p.name != "index.json")
+    days = _report_days(reports_dir)
     index_path = reports_dir / "index.json"
     index_path.write_text(
         json.dumps({"reports": days, "latest": days[-1] if days else None}, indent=2),
         encoding="utf-8",
     )
     return index_path
+
+
+def build_trends(reports_dir: Path) -> dict[str, Any]:
+    """Szereg czasowy zlozony ze wszystkich dotychczasowych raportow.
+
+    Liczymy to tutaj, a nie w przegladarce, z tego samego powodu co reszte:
+    dashboard ma rysowac gotowe liczby, nie interpretowac dane.
+
+    Rozdzial zrodel obowiazuje tak samo jak w raporcie dziennym - serie
+    z total_results i serie z proby sa w osobnych galeziach, zeby nie dalo
+    sie ich przypadkiem zestawic na jednym wykresie.
+    """
+    days = _report_days(reports_dir)
+    reports = []
+    for day in days:
+        try:
+            reports.append((day, json.loads((reports_dir / f"{day}.json").read_text(encoding="utf-8"))))
+        except (OSError, json.JSONDecodeError):
+            # Uszkodzony raport nie moze wywrocic calego szeregu.
+            continue
+
+    dates = [day for day, _ in reports]
+
+    market: dict[str, list[Any]] = {"total_offers": []}
+    shares: dict[str, list[float | None]] = {level: [] for level in SENIORITY_LEVELS}
+    tech: dict[str, dict[str, list[Any]]] = {}
+    salaries: dict[str, dict[str, list[Any]]] = {level: {"median": []} for level in SENIORITY_LEVELS}
+
+    # Technologie moga dochodzic i znikac miedzy przebiegami (queries.py sie
+    # zmienia), wiec seria musi miec dziure tam, gdzie pomiaru nie bylo -
+    # None, a nie zero. Zero znaczyloby "zmierzylismy i nie ma ofert".
+    all_tech = sorted({row["technology"] for _, report in reports for row in report.get("tech_demand", [])})
+
+    for _, report in reports:
+        market_block = report.get("market", {})
+        market["total_offers"].append(market_block.get("total_offers"))
+        for level in SENIORITY_LEVELS:
+            shares[level].append(market_block.get("share_of_market", {}).get(level))
+
+        by_tech = {row["technology"]: row for row in report.get("tech_demand", [])}
+        for name in all_tech:
+            row = by_tech.get(name)
+            series = tech.setdefault(name, {"entry_level_offers": [], "junior_ratio": [], "total": [], "group": None})
+            series["entry_level_offers"].append(row.get("entry_level_offers") if row else None)
+            series["junior_ratio"].append(row.get("junior_ratio") if row else None)
+            series["total"].append(row.get("total") if row else None)
+            if row and series["group"] is None:
+                series["group"] = row.get("group")
+
+        by_level = report.get("salaries", {}).get("by_seniority", {})
+        for level in SENIORITY_LEVELS:
+            salaries[level]["median"].append((by_level.get(level) or {}).get("median"))
+
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "dates": dates,
+        "snapshots": len(dates),
+        "market": {"source": "total_results", **market, "share_of_market": shares},
+        "tech_demand": {"source": "total_results", "series": tech},
+        "salaries": {"source": "sample (max 50/zapytanie)", "by_seniority": salaries},
+    }
+
+
+def write_trends(reports_dir: Path) -> Path:
+    path = reports_dir / "trends.json"
+    path.write_text(json.dumps(build_trends(reports_dir), ensure_ascii=False, indent=2), encoding="utf-8")
+    return path
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -308,6 +396,7 @@ def main(argv: list[str] | None = None) -> int:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     write_reports_index(out_path.parent)
+    write_trends(out_path.parent)
 
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))

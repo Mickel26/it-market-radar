@@ -72,6 +72,77 @@
           </div>
         </section>
 
+        <!-- -------------------------------------------------------- trendy -->
+        <section id="trendy" hidden>
+          <div class="sec-head">
+            <h2>Jak to się zmienia</h2>
+            <p>
+              Snapshoty są append-only i nieodtwarzalne wstecz — oferta, która znika z agregatora, nie wraca do żadnego
+              archiwum. Każdy kolejny przebieg dokłada punkt, którego nie dałoby się policzyć później.
+            </p>
+          </div>
+
+          <div class="card" id="trend-empty" hidden>
+            <div class="card-head">
+              <h3>Za wcześnie na trend</h3>
+              <span class="src src-exact">dokładne liczby</span>
+            </div>
+            <p class="card-sub" style="margin-bottom: 0">
+              Mamy <b id="trend-count">1</b> pomiar. Wykres zmiany w czasie potrzebuje co najmniej dwóch — linia
+              poprowadzona przez jeden punkt wygląda jak wiedza, a nią nie jest. Zbieranie chodzi automatycznie w
+              poniedziałki, więc pierwszy trend pojawi się tu sam po następnym przebiegu.
+            </p>
+          </div>
+
+          <div id="trend-charts" hidden>
+            <div class="card">
+              <div class="card-head">
+                <h3>Udział ofert dla początkujących</h3>
+                <span class="src src-exact">dokładne liczby</span>
+              </div>
+              <p class="card-sub" id="trend-entry-note"></p>
+              <div class="chart" id="chart-trend-entry"></div>
+              <div id="trend-entry-toggle" style="margin-top: 14px"></div>
+              <div id="table-trend-entry"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h3>Oferty entry-level według technologii</h3>
+                <span class="src src-exact">dokładne liczby</span>
+              </div>
+              <p class="card-sub">
+                Liczby bezwzględne, nie odsetki — ile realnie jest miejsc do zdobycia. Maksymalnie pięć serii naraz;
+                powyżej tego linie zlewają się w kłębek.
+              </p>
+              <div class="controls">
+                <div class="ctrl-group">
+                  <span class="ctrl-label">Pokaż:</span>
+                  <span id="trend-tech-picker" class="ctrl-group"></span>
+                </div>
+              </div>
+              <div class="chart" id="chart-trend-tech"></div>
+              <div id="trend-tech-legend"></div>
+              <div id="trend-tech-toggle" style="margin-top: 12px"></div>
+              <div id="table-trend-tech"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h3>Mediana widełek w czasie</h3>
+                <span class="src src-sample">próba ≤50 ofert/zapytanie</span>
+              </div>
+              <p class="card-sub">
+                Osobna karta, bo to jedyny wykres w tej sekcji liczony z próby, a nie z pełnej liczby dopasowań.
+                Porównywanie go z wykresami powyżej byłoby zestawianiem dwóch różnych poziomów zaufania.
+              </p>
+              <div class="chart" id="chart-trend-salary"></div>
+              <div id="trend-salary-toggle" style="margin-top: 14px"></div>
+              <div id="table-trend-salary"></div>
+            </div>
+          </div>
+        </section>
+
         <!-- ------------------------------------------------------- ranking -->
         <section id="technologie">
           <div class="sec-head">
@@ -247,8 +318,10 @@
                 go zdjąć, ale wtedy górę listy zajmuje szum.
               </li>
               <li>
-                <b>To jest jeden snapshot, nie trend.</b> Zdjęcie rynku z 30-dniowego okna. Snapshoty są append-only,
-                więc kolejne przebiegi zbudują szereg czasowy, którego nie da się odtworzyć wstecz — oferty znikają.
+                <b>Każda liczba poza sekcją „Jak to się zmienia" to jeden snapshot.</b> Zdjęcie rynku z 30-dniowego
+                okna, nie trend. Szereg czasowy buduje się dopiero z kolejnych przebiegów i nie da się go odtworzyć
+                wstecz — oferty znikają z agregatora bezpowrotnie. Dopóki pomiarów jest mniej niż dwa, sekcja trendów
+                mówi to wprost, zamiast rysować linię przez jeden punkt.
               </li>
             </ul>
           </div>

@@ -61,6 +61,7 @@ data/
   snapshots/<data>/manifest.json        metadane przebiegu + lista błędów
   reports/<data>.json                   policzony raport
   reports/index.json                    spis raportów dla dashboardu
+  reports/trends.json                   szereg czasowy ze wszystkich raportów
 profile/                                CV, profil i wyniki — NIE w repo (.gitignore)
 index.html                              dashboard
 assets/dashboard.css                    tokeny kolorów, układ
@@ -156,5 +157,6 @@ dashboard dla pojedynczego snapshotu, cotygodniowy przebieg z crona,
 lokalne dopasowywanie ofert do profilu.
 Następne: szereg czasowy między snapshotami, kanał powiadomień dla dopasowań.
 
-Dashboard celowo nie pokazuje jeszcze trendów — jest jeden snapshot, a wykres czasowy
-z jednym punktem udaje wiedzę, której nie ma. Trendy dochodzą, gdy uzbiera się kilka przebiegów.
+Sekcja trendów jest zbudowana, ale dopóki snapshotów jest mniej niż dwa, mówi wprost,
+że nie ma czego rysować. Wykres czasowy z jednym punktem udaje wiedzę, której nie ma —
+linie pojawią się same po drugim przebiegu, bez zmiany w kodzie.

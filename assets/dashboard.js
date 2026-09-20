@@ -242,12 +242,21 @@ function responsive(container, draw) {
 
 /* ------------------------------------------------------------- prymitywy osi */
 
+/**
+ * Podzialki osi zaokraglone do czytelnych liczb, ZAWSZE pokrywajace maksimum.
+ *
+ * Ostatnia podzialka jest gorna granica skali, wiec musi byc >= najwiekszej
+ * wartosci. Inaczej linia mediany seniora (24 000) przy podzialkach do 20 000
+ * wychodzi poza wykres i wchodzi na tekst obok.
+ */
 function niceTicks(max, count) {
+  if (!(max > 0)) return [0, 1];
   const raw = max / count;
   const mag = Math.pow(10, Math.floor(Math.log10(raw)));
   const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw) || 10 * mag;
+  const top = Math.ceil(max / step) * step;
   const ticks = [];
-  for (let v = 0; v <= max + step * 0.001; v += step) ticks.push(v);
+  for (let v = 0; v <= top + step * 0.001; v += step) ticks.push(Math.round(v * 1e6) / 1e6);
   return ticks;
 }
 
@@ -290,11 +299,17 @@ function horizontalBars(width, rows, opts = {}) {
   const height = top + plotH + axisBand + 4;
 
   const root = svg("svg", { viewBox: `0 0 ${width} ${height}`, height, role: "presentation" });
-  const max = opts.max ?? Math.max(...rows.map((r) => r.value), 1);
+  const dataMax = opts.max ?? Math.max(...rows.map((r) => r.value), 1);
+
+  // Slupki i siatka musza dzielic te sama gorna granice: skalowanie slupkow
+  // do maksimum danych, a siatki do zaokraglonej podzialki rozjechaloby je
+  // i ostatnia linia siatki wyszlaby poza wykres.
+  const ticks = opts.axisFmt ? niceTicks(dataMax, width < 480 ? 3 : 5) : null;
+  const max = ticks ? ticks[ticks.length - 1] : dataMax;
   const scale = (v) => labelW + (v / max) * plotW;
 
-  if (opts.axisFmt) {
-    drawGrid(root, niceTicks(max, width < 480 ? 3 : 5), scale, top, plotH, opts.axisFmt);
+  if (ticks) {
+    drawGrid(root, ticks, scale, top, plotH, opts.axisFmt);
   }
 
   rows.forEach((row, i) => {
@@ -477,6 +492,193 @@ function legend(series) {
   return box;
 }
 
+/* -------------------------------------------------- wykres: linia w czasie */
+
+/**
+ * Szereg czasowy. Os X to prawdziwe daty, nie kolejne indeksy - pominiety
+ * przebieg ma zostawic luke, a nie udawac rowny rytm.
+ *
+ * series: [{ key, label, color, values: [liczba|null] }]
+ * Wartosc null rozrywa linie: "nie mierzylismy" to nie to samo co "zero".
+ */
+function lineChart(width, dates, series, opts = {}) {
+  const padLeft = opts.padLeft ?? 48;
+  const padRight = opts.padRight ?? (opts.directLabels ? 96 : 16);
+  const top = 12;
+  const plotH = opts.height ?? 200;
+  const axisBand = 28;
+  const height = top + plotH + axisBand;
+  const plotW = Math.max(40, width - padLeft - padRight);
+
+  const root = svg("svg", { viewBox: `0 0 ${width} ${height}`, height, role: "presentation" });
+
+  const times = dates.map((d) => new Date(`${d}T00:00:00Z`).getTime());
+  const tMin = Math.min(...times);
+  const tMax = Math.max(...times);
+  // Jeden punkt nie ma rozpietosci - stawiamy go na srodku zamiast dzielic przez zero.
+  const x = (t) => (tMax === tMin ? padLeft + plotW / 2 : padLeft + ((t - tMin) / (tMax - tMin)) * plotW);
+
+  const flat = series.flatMap((s) => s.values).filter((v) => v !== null && v !== undefined);
+  const rawMax = flat.length ? Math.max(...flat) : 1;
+  const ticks = niceTicks(rawMax, 4);
+  const yMax = ticks[ticks.length - 1] || 1;
+  const y = (v) => top + plotH - (v / yMax) * plotH;
+
+  // Siatka pozioma + os Y
+  for (const tick of ticks) {
+    root.append(
+      svg("line", { x1: padLeft, x2: padLeft + plotW, y1: y(tick), y2: y(tick), stroke: "var(--gridline)", "stroke-width": 1 })
+    );
+    const label = svg("text", {
+      x: padLeft - 8,
+      y: y(tick),
+      "text-anchor": "end",
+      "dominant-baseline": "central",
+      fill: "var(--text-muted)",
+      "font-size": 11,
+      "font-variant-numeric": "tabular-nums",
+    });
+    label.textContent = opts.yFmt ? opts.yFmt(tick) : fmtInt(tick);
+    root.append(label);
+  }
+
+  // Os X: pierwsza i ostatnia data zawsze, srodkowe tylko jesli sie mieszcza
+  const everyNth = Math.max(1, Math.ceil(dates.length / Math.max(2, Math.floor(plotW / 70))));
+  dates.forEach((day, i) => {
+    if (i !== 0 && i !== dates.length - 1 && i % everyNth !== 0) return;
+    const label = svg("text", {
+      x: x(times[i]),
+      y: top + plotH + 18,
+      "text-anchor": i === 0 ? "start" : i === dates.length - 1 ? "end" : "middle",
+      fill: "var(--text-muted)",
+      "font-size": 11,
+      "font-variant-numeric": "tabular-nums",
+    });
+    label.textContent = day.slice(8) + "." + day.slice(5, 7);
+    root.append(label);
+  });
+
+  // Linie: przerwa tam, gdzie brakuje pomiaru
+  for (const s of series) {
+    let path = "";
+    let open = false;
+    s.values.forEach((value, i) => {
+      if (value === null || value === undefined) {
+        open = false;
+        return;
+      }
+      path += `${open ? "L" : "M"}${x(times[i])},${y(value)}`;
+      open = true;
+    });
+    if (path) {
+      root.append(
+        svg("path", {
+          d: path,
+          fill: "none",
+          stroke: s.color,
+          "stroke-width": 2,
+          "stroke-linejoin": "round",
+          "stroke-linecap": "round",
+        })
+      );
+    }
+
+    // Punkty z 2px obwodka w kolorze powierzchni, zeby nie zlewaly sie
+    // tam, gdzie serie sie przecinaja.
+    s.values.forEach((value, i) => {
+      if (value === null || value === undefined) return;
+      root.append(
+        svg("circle", {
+          cx: x(times[i]),
+          cy: y(value),
+          r: 4,
+          fill: s.color,
+          stroke: "var(--surface-1)",
+          "stroke-width": 2,
+        })
+      );
+    });
+
+  }
+
+  /*
+   * Etykiety przy koncach linii dzialaja tylko wtedy, gdy serie sie rozchodza.
+   * Gdy zbiegaja sie (mediana stazu i juniora roznia sie o kilka pikseli),
+   * odsuwanie etykiet od siebie odrywa je od wlasnych linii i klamie. Wtedy
+   * rezygnujemy z nich w calosci - identyfikacje niesie legenda i tooltip.
+   */
+  if (opts.directLabels) {
+    const labels = series
+      .map((s) => {
+        const lastIndex = s.values.reduce((acc, v, i) => (v === null || v === undefined ? acc : i), -1);
+        return lastIndex >= 0 ? { label: s.label, x: x(times[lastIndex]), y: y(s.values[lastIndex]) } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.y - b.y);
+
+    const crowded = labels.some((item, i) => i > 0 && item.y - labels[i - 1].y < 14);
+    if (!crowded) {
+      for (const item of labels) {
+        const text = svg("text", {
+          x: item.x + 10,
+          y: item.y,
+          "dominant-baseline": "central",
+          fill: "var(--text-secondary)",
+          "font-size": 12,
+        });
+        text.textContent = item.label;
+        root.append(text);
+      }
+    }
+  }
+
+  // Warstwa trafien: pionowy pas na date, nie celowanie w 8px kropke
+  const bandW = plotW / Math.max(1, dates.length);
+  const crosshair = svg("line", {
+    x1: 0, x2: 0, y1: top, y2: top + plotH,
+    stroke: "var(--baseline)", "stroke-width": 1, opacity: 0,
+  });
+  root.append(crosshair);
+
+  dates.forEach((day, i) => {
+    const cx = x(times[i]);
+    const hit = svg("rect", {
+      x: cx - bandW / 2,
+      y: top,
+      width: bandW,
+      height: plotH,
+      fill: "transparent",
+      "data-hit": "1",
+    });
+    hit.setAttribute(
+      "aria-label",
+      `${day}: ${series.map((s) => `${s.label} ${s.values[i] ?? "brak"}`).join(", ")}`
+    );
+    const build = () =>
+      tipBody(
+        day,
+        series.map((s) => ({
+          color: s.color,
+          label: s.label,
+          value: s.values[i] === null || s.values[i] === undefined
+            ? "brak pomiaru"
+            : (opts.tipFmt || opts.yFmt || fmtInt)(s.values[i]),
+        })),
+        opts.note
+      );
+    hit.addEventListener("pointerenter", () => {
+      crosshair.setAttribute("x1", cx);
+      crosshair.setAttribute("x2", cx);
+      crosshair.setAttribute("opacity", "1");
+    });
+    hit.addEventListener("pointerleave", () => crosshair.setAttribute("opacity", "0"));
+    attachHit(hit, build);
+    root.append(hit);
+  });
+
+  return root;
+}
+
 /* ---------------------------------------------------- wykres: widelki plac */
 
 function rangeBars(width, rows) {
@@ -489,11 +691,14 @@ function rangeBars(width, rows) {
   const axisBand = 26;
   const height = top + rows.length * rowH + axisBand;
 
-  const max = Math.max(...rows.map((r) => r.p75)) * 1.08;
+  // Gorna granica bierze sie z podzialek, nie odwrotnie - inaczej ostatnia
+  // linia siatki lezy poza wykresem (patrz komentarz przy niceTicks).
+  const ticks = niceTicks(Math.max(...rows.map((r) => r.p75)), width < 480 ? 3 : 5);
+  const max = ticks[ticks.length - 1];
   const scale = (v) => labelW + (v / max) * plotW;
 
   const root = svg("svg", { viewBox: `0 0 ${width} ${height}`, height, role: "presentation" });
-  drawGrid(root, niceTicks(max, width < 480 ? 3 : 5), scale, top, rows.length * rowH, fmtPLNk);
+  drawGrid(root, ticks, scale, top, rows.length * rowH, fmtPLNk);
 
   rows.forEach((row, i) => {
     const y = top + i * rowH;
@@ -967,6 +1172,237 @@ function renderSplit(config) {
   document.getElementById(toggleId).append(tableToggle(table));
 }
 
+/* ------------------------------------------------------------- trendy */
+
+const TREND_SLOTS = [
+  "var(--series-1)", "var(--series-2)", "var(--series-3)",
+  "var(--series-4)", "var(--series-5)",
+];
+
+function renderTrends(trends) {
+  const section = document.getElementById("trendy");
+  const dates = trends.dates || [];
+
+  // Jeden pomiar to nie trend. Zamiast rysowac linie z jednego punktu -
+  // co wyglada jak wykres, a nie niesie zadnej informacji o zmianie -
+  // mowimy wprost, czego brakuje i kiedy to sie pojawi.
+  if (dates.length < 2) {
+    document.getElementById("trend-empty").hidden = false;
+    document.getElementById("trend-charts").hidden = true;
+    document.getElementById("trend-count").textContent = String(dates.length);
+    section.hidden = false;
+    return;
+  }
+
+  document.getElementById("trend-empty").hidden = true;
+  document.getElementById("trend-charts").hidden = false;
+
+  renderEntryTrend(trends, dates);
+  renderTechTrend(trends, dates);
+  renderSalaryTrend(trends, dates);
+  section.hidden = false;
+}
+
+/** Udzial ofert dla poczatkujacych - jedna seria, bo to teza calego projektu. */
+function renderEntryTrend(trends, dates) {
+  const share = trends.market.share_of_market;
+  const values = dates.map((_, i) => {
+    const junior = share.junior?.[i];
+    const intern = share.intern?.[i];
+    if (junior === null || junior === undefined) return null;
+    return Math.round((junior + (intern || 0)) * 10) / 10;
+  });
+
+  const series = [{ key: "entry", label: "junior + staż", color: "var(--series-1)", values }];
+  const chart = document.getElementById("chart-trend-entry");
+  responsive(chart, (w) =>
+    lineChart(w, dates, series, {
+      yFmt: (v) => `${NF.format(v)}%`,
+      tipFmt: fmtPct,
+      height: w < 520 ? 160 : 190,
+      note: "źródło: total_results",
+    })
+  );
+
+  const first = values.find((v) => v !== null);
+  const last = [...values].reverse().find((v) => v !== null);
+  const delta = last - first;
+  const note = document.getElementById("trend-entry-note");
+  // "o 1,6%" przy wartosciach, ktore SAME sa procentami, znaczy co innego niz
+  // "o 1,6 pkt proc." - to druga rzecz jest tu prawda.
+  note.textContent =
+    Math.abs(delta) < 0.05
+      ? `Bez zmiany od pierwszego pomiaru (${fmtPct(last)}).`
+      : `${delta > 0 ? "Wzrost" : "Spadek"} o ${NF1.format(
+          Math.abs(Math.round(delta * 10) / 10)
+        )} pkt proc. od pierwszego pomiaru — z ${fmtPct(first)} na ${fmtPct(last)}.`;
+
+  const table = document.getElementById("table-trend-entry");
+  table.replaceChildren(
+    buildTable(
+      "Udział ofert junior + staż w kolejnych snapshotach.",
+      ["Data", "Udział entry-level", "Ofert ogółem"],
+      dates.map((day, i) => [
+        day,
+        values[i] === null ? "brak pomiaru" : fmtPct(values[i]),
+        trends.market.total_offers[i] === null ? "—" : fmtInt(trends.market.total_offers[i]),
+      ])
+    )
+  );
+  document.getElementById("trend-entry-toggle").append(tableToggle(table));
+}
+
+/** Oferty entry-level per technologia - wybor do 5 serii naraz. */
+function renderTechTrend(trends, dates) {
+  const all = trends.tech_demand.series;
+  const names = Object.keys(all);
+  if (!names.length) return;
+
+  // Domyslnie piec technologii z najwieksza liczba ofert entry-level
+  // w ostatnim pomiarze - to sa realne drzwi, a nie te najglosniejsze.
+  const lastOf = (name) => {
+    const values = all[name].entry_level_offers;
+    return [...values].reverse().find((v) => v !== null && v !== undefined) ?? 0;
+  };
+  const selected = new Set(names.slice().sort((a, b) => lastOf(b) - lastOf(a)).slice(0, 5));
+
+  // Kolor nalezy do technologii, nie do pozycji w legendzie: slot raz
+  // przypisany trzyma sie serii az do jej odznaczenia, wiec usuniecie
+  // jednej nie przemalowuje pozostalych.
+  const slots = new Map();
+  const assign = (name) => {
+    if (slots.has(name)) return;
+    const taken = new Set(slots.values());
+    const free = TREND_SLOTS.findIndex((_, i) => !taken.has(i));
+    slots.set(name, free === -1 ? 0 : free);
+  };
+  selected.forEach(assign);
+
+  const buildSeries = () =>
+    [...selected].map((name) => ({
+      key: name,
+      label: name,
+      color: TREND_SLOTS[slots.get(name) ?? 0],
+      values: all[name].entry_level_offers,
+    }));
+
+  const chart = document.getElementById("chart-trend-tech");
+  const legendBox = document.getElementById("trend-tech-legend");
+  const tableBox = document.getElementById("table-trend-tech");
+
+  const redraw = responsive(chart, (w) =>
+    lineChart(w, dates, buildSeries(), {
+      yFmt: fmtInt,
+      height: w < 520 ? 180 : 220,
+      directLabels: w >= 640 && selected.size <= 4,
+      note: "źródło: total_results",
+    })
+  );
+
+  function refresh() {
+    redraw();
+    legendBox.replaceChildren(legend(buildSeries()));
+    const chosen = [...selected];
+    tableBox.replaceChildren(
+      buildTable(
+        "Liczba ofert entry-level w kolejnych snapshotach.",
+        ["Data", ...chosen],
+        dates.map((day, i) => [
+          day,
+          ...chosen.map((name) => {
+            const value = all[name].entry_level_offers[i];
+            return value === null || value === undefined ? "brak pomiaru" : fmtInt(value);
+          }),
+        ])
+      )
+    );
+  }
+
+  // Czterdziesci chipow alfabetycznie to sciana do czytania. Sortujemy po
+  // liczbie ofert entry-level (najpierw te, w ktorych realnie cos jest)
+  // i chowamy ogon za rozwijaniem.
+  const VISIBLE = 12;
+  const ordered = names.slice().sort((a, b) => lastOf(b) - lastOf(a));
+  const picker = document.getElementById("trend-tech-picker");
+  const overflow = [];
+
+  ordered.forEach((name, index) => {
+    const btn = el("button", "chip", name);
+    btn.type = "button";
+    btn.setAttribute("aria-pressed", String(selected.has(name)));
+    btn.addEventListener("click", () => {
+      if (selected.has(name)) {
+        if (selected.size === 1) return; // pusty wykres nie mowi nic
+        selected.delete(name);
+        slots.delete(name);
+      } else {
+        if (selected.size >= TREND_SLOTS.length) return; // powyzej piatki linie sie zlewaja
+        selected.add(name);
+        assign(name);
+      }
+      btn.setAttribute("aria-pressed", String(selected.has(name)));
+      refresh();
+    });
+    if (index >= VISIBLE && !selected.has(name)) {
+      btn.hidden = true;
+      overflow.push(btn);
+    }
+    picker.append(btn);
+  });
+
+  if (overflow.length) {
+    const more = el("button", "linkish", `pokaż wszystkie (${ordered.length})`);
+    more.type = "button";
+    more.style.marginLeft = "4px";
+    more.addEventListener("click", () => {
+      const hidden = overflow[0].hidden;
+      for (const btn of overflow) btn.hidden = !hidden;
+      more.textContent = hidden ? "pokaż mniej" : `pokaż wszystkie (${ordered.length})`;
+    });
+    picker.append(more);
+  }
+
+  document.getElementById("trend-tech-toggle").append(tableToggle(tableBox));
+  refresh();
+}
+
+/** Mediany widelek - osobna karta, bo to dane z proby, nie z total_results. */
+function renderSalaryTrend(trends, dates) {
+  const by = trends.salaries.by_seniority;
+  const series = SENIORITY_ORDER.filter((key) => by[key]).map((key) => ({
+    key,
+    label: SENIORITY_LABEL[key],
+    color: SENIORITY_COLOR[key],
+    values: by[key].median,
+  }));
+  if (!series.length) return;
+
+  const chart = document.getElementById("chart-trend-salary");
+  responsive(chart, (w) =>
+    lineChart(w, dates, series, {
+      yFmt: fmtPLNk,
+      tipFmt: fmtPLN,
+      height: w < 520 ? 180 : 210,
+      directLabels: w >= 640,
+      note: "źródło: próba (maks. 50 ofert/zapytanie)",
+    })
+  );
+  chart.after(legend(series));
+
+  const table = document.getElementById("table-trend-salary");
+  table.replaceChildren(
+    buildTable(
+      "Mediana widełek w kolejnych snapshotach — z ofert, które je ujawniają.",
+      ["Data", ...series.map((s) => s.label)],
+      dates.map((day, i) => [
+        day,
+        ...series.map((s) => (s.values[i] === null || s.values[i] === undefined ? "brak" : fmtPLN(s.values[i]))),
+      ])
+    )
+  );
+  document.getElementById("trend-salary-toggle").append(tableToggle(table));
+}
+
 function renderEmployers(report) {
   const rows = report.top_junior_employers;
   const chart = document.getElementById("chart-employers");
@@ -1036,14 +1472,29 @@ async function loadReport() {
   return res.json();
 }
 
+/**
+ * Szereg czasowy jest opcjonalny: brak pliku nie moze wywrocic dashboardu,
+ * bo raport dzienny jest samowystarczalny, a trends.json pojawil sie pozniej.
+ */
+async function loadTrends() {
+  try {
+    const res = await fetch("data/reports/trends.json", { cache: "no-cache" });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (_) {
+    return null;
+  }
+}
+
 async function main() {
   setupTheme();
   const status = document.getElementById("status");
   try {
-    const report = await loadReport();
+    const [report, trends] = await Promise.all([loadReport(), loadTrends()]);
     renderHeader(report);
     renderHero(report);
     renderMarket(report);
+    if (trends) renderTrends(trends);
     renderTech(report);
     renderSalaries(report);
     renderLearningPaths(report);
