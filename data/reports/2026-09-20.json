@@ -1,0 +1,1160 @@
+{
+  "generated_for": "2026-09-20",
+  "window": "30d",
+  "collection": {
+    "queries_ok": 189,
+    "queries_failed": 0,
+    "jobs_in_corpus": 2549
+  },
+  "market": {
+    "source": "total_results",
+    "total_offers": 12500,
+    "by_seniority": {
+      "intern": 159,
+      "junior": 755,
+      "mid": 4664,
+      "senior": 6055
+    },
+    "share_of_market": {
+      "intern": 1.3,
+      "junior": 6.0,
+      "mid": 37.3,
+      "senior": 48.4
+    }
+  },
+  "work_modes": {
+    "intern": {
+      "remote": 47,
+      "hybrid": 89,
+      "office": 56
+    },
+    "junior": {
+      "remote": 193,
+      "hybrid": 410,
+      "office": 247
+    },
+    "mid": {
+      "remote": 1586,
+      "hybrid": 2623,
+      "office": 1009
+    },
+    "senior": {
+      "remote": 2702,
+      "hybrid": 3248,
+      "office": 759
+    }
+  },
+  "contracts": {
+    "intern": {
+      "b2b": 5,
+      "employment_contract": 21,
+      "internship": 64
+    },
+    "junior": {
+      "b2b": 290,
+      "employment_contract": 422,
+      "internship": 6
+    },
+    "mid": {
+      "b2b": 2517,
+      "employment_contract": 2224,
+      "internship": 4
+    },
+    "senior": {
+      "b2b": 3498,
+      "employment_contract": 1722,
+      "internship": 5
+    }
+  },
+  "tech_demand": [
+    {
+      "source": "total_results",
+      "technology": "SQL",
+      "group": "data",
+      "levels": {
+        "intern": 29,
+        "junior": 168,
+        "mid": 1244,
+        "senior": 1331
+      },
+      "total": 2772,
+      "entry_level_offers": 197,
+      "junior_ratio": 7.1
+    },
+    {
+      "source": "total_results",
+      "technology": "Python",
+      "group": "backend",
+      "levels": {
+        "intern": 28,
+        "junior": 108,
+        "mid": 897,
+        "senior": 1380
+      },
+      "total": 2413,
+      "entry_level_offers": 136,
+      "junior_ratio": 5.6
+    },
+    {
+      "source": "total_results",
+      "technology": "Azure",
+      "group": "devops",
+      "levels": {
+        "intern": 5,
+        "junior": 66,
+        "mid": 535,
+        "senior": 1046
+      },
+      "total": 1652,
+      "entry_level_offers": 71,
+      "junior_ratio": 4.3
+    },
+    {
+      "source": "total_results",
+      "technology": "Java",
+      "group": "backend",
+      "levels": {
+        "intern": 14,
+        "junior": 57,
+        "mid": 505,
+        "senior": 951
+      },
+      "total": 1527,
+      "entry_level_offers": 71,
+      "junior_ratio": 4.6
+    },
+    {
+      "source": "total_results",
+      "technology": "Linux",
+      "group": "devops",
+      "levels": {
+        "intern": 14,
+        "junior": 124,
+        "mid": 540,
+        "senior": 501
+      },
+      "total": 1179,
+      "entry_level_offers": 138,
+      "junior_ratio": 11.7
+    },
+    {
+      "source": "total_results",
+      "technology": "Kubernetes",
+      "group": "devops",
+      "levels": {
+        "intern": 7,
+        "junior": 30,
+        "mid": 380,
+        "senior": 709
+      },
+      "total": 1126,
+      "entry_level_offers": 37,
+      "junior_ratio": 3.3
+    },
+    {
+      "source": "total_results",
+      "technology": "AWS",
+      "group": "devops",
+      "levels": {
+        "intern": 3,
+        "junior": 32,
+        "mid": 310,
+        "senior": 722
+      },
+      "total": 1067,
+      "entry_level_offers": 35,
+      "junior_ratio": 3.3
+    },
+    {
+      "source": "total_results",
+      "technology": "Docker",
+      "group": "devops",
+      "levels": {
+        "intern": 9,
+        "junior": 56,
+        "mid": 419,
+        "senior": 569
+      },
+      "total": 1053,
+      "entry_level_offers": 65,
+      "junior_ratio": 6.2
+    },
+    {
+      "source": "total_results",
+      "technology": "CI/CD",
+      "group": "devops",
+      "levels": {
+        "intern": 1,
+        "junior": 17,
+        "mid": 337,
+        "senior": 655
+      },
+      "total": 1010,
+      "entry_level_offers": 18,
+      "junior_ratio": 1.8
+    },
+    {
+      "source": "total_results",
+      "technology": "TypeScript",
+      "group": "frontend",
+      "levels": {
+        "intern": 6,
+        "junior": 21,
+        "mid": 313,
+        "senior": 448
+      },
+      "total": 788,
+      "entry_level_offers": 27,
+      "junior_ratio": 3.4
+    },
+    {
+      "source": "total_results",
+      "technology": "JavaScript",
+      "group": "frontend",
+      "levels": {
+        "intern": 14,
+        "junior": 54,
+        "mid": 321,
+        "senior": 373
+      },
+      "total": 762,
+      "entry_level_offers": 68,
+      "junior_ratio": 8.9
+    },
+    {
+      "source": "total_results",
+      "technology": "Spring",
+      "group": "backend",
+      "levels": {
+        "intern": 1,
+        "junior": 24,
+        "mid": 217,
+        "senior": 456
+      },
+      "total": 698,
+      "entry_level_offers": 25,
+      "junior_ratio": 3.6
+    },
+    {
+      "source": "total_results",
+      "technology": "PostgreSQL",
+      "group": "data",
+      "levels": {
+        "intern": 5,
+        "junior": 18,
+        "mid": 273,
+        "senior": 374
+      },
+      "total": 670,
+      "entry_level_offers": 23,
+      "junior_ratio": 3.4
+    },
+    {
+      "source": "total_results",
+      "technology": "React",
+      "group": "frontend",
+      "levels": {
+        "intern": 9,
+        "junior": 22,
+        "mid": 199,
+        "senior": 385
+      },
+      "total": 615,
+      "entry_level_offers": 31,
+      "junior_ratio": 5.0
+    },
+    {
+      "source": "total_results",
+      "technology": "C#",
+      "group": "backend",
+      "levels": {
+        "intern": 6,
+        "junior": 33,
+        "mid": 239,
+        "senior": 318
+      },
+      "total": 596,
+      "entry_level_offers": 39,
+      "junior_ratio": 6.5
+    },
+    {
+      "source": "total_results",
+      "technology": "Terraform",
+      "group": "devops",
+      "levels": {
+        "intern": 2,
+        "junior": 16,
+        "mid": 152,
+        "senior": 400
+      },
+      "total": 570,
+      "entry_level_offers": 18,
+      "junior_ratio": 3.2
+    },
+    {
+      "source": "total_results",
+      "technology": ".NET",
+      "group": "backend",
+      "levels": {
+        "intern": 9,
+        "junior": 34,
+        "mid": 200,
+        "senior": 318
+      },
+      "total": 561,
+      "entry_level_offers": 43,
+      "junior_ratio": 7.7
+    },
+    {
+      "source": "total_results",
+      "technology": "Angular",
+      "group": "frontend",
+      "levels": {
+        "intern": 3,
+        "junior": 25,
+        "mid": 182,
+        "senior": 267
+      },
+      "total": 477,
+      "entry_level_offers": 28,
+      "junior_ratio": 5.9
+    },
+    {
+      "source": "total_results",
+      "technology": "LLM",
+      "group": "ai",
+      "levels": {
+        "intern": 1,
+        "junior": 7,
+        "mid": 97,
+        "senior": 242
+      },
+      "total": 347,
+      "entry_level_offers": 8,
+      "junior_ratio": 2.3
+    },
+    {
+      "source": "total_results",
+      "technology": "Power BI",
+      "group": "data",
+      "levels": {
+        "intern": 5,
+        "junior": 22,
+        "mid": 158,
+        "senior": 147
+      },
+      "total": 332,
+      "entry_level_offers": 27,
+      "junior_ratio": 8.1
+    },
+    {
+      "source": "total_results",
+      "technology": "Go",
+      "group": "backend",
+      "levels": {
+        "intern": 3,
+        "junior": 10,
+        "mid": 75,
+        "senior": 209
+      },
+      "total": 297,
+      "entry_level_offers": 13,
+      "junior_ratio": 4.4
+    },
+    {
+      "source": "total_results",
+      "technology": "Node.js",
+      "group": "backend",
+      "levels": {
+        "intern": 3,
+        "junior": 7,
+        "mid": 97,
+        "senior": 186
+      },
+      "total": 293,
+      "entry_level_offers": 10,
+      "junior_ratio": 3.4
+    },
+    {
+      "source": "total_results",
+      "technology": "Machine Learning",
+      "group": "ai",
+      "levels": {
+        "intern": 3,
+        "junior": 6,
+        "mid": 97,
+        "senior": 175
+      },
+      "total": 281,
+      "entry_level_offers": 9,
+      "junior_ratio": 3.2
+    },
+    {
+      "source": "total_results",
+      "technology": "Kotlin",
+      "group": "backend",
+      "levels": {
+        "intern": 2,
+        "junior": 13,
+        "mid": 101,
+        "senior": 158
+      },
+      "total": 274,
+      "entry_level_offers": 15,
+      "junior_ratio": 5.5
+    },
+    {
+      "source": "total_results",
+      "technology": "Spark",
+      "group": "data",
+      "levels": {
+        "intern": 0,
+        "junior": 6,
+        "mid": 79,
+        "senior": 153
+      },
+      "total": 238,
+      "entry_level_offers": 6,
+      "junior_ratio": 2.5
+    },
+    {
+      "source": "total_results",
+      "technology": "Snowflake",
+      "group": "data",
+      "levels": {
+        "intern": 2,
+        "junior": 2,
+        "mid": 65,
+        "senior": 144
+      },
+      "total": 213,
+      "entry_level_offers": 4,
+      "junior_ratio": 1.9
+    },
+    {
+      "source": "total_results",
+      "technology": "PHP",
+      "group": "backend",
+      "levels": {
+        "intern": 2,
+        "junior": 15,
+        "mid": 98,
+        "senior": 86
+      },
+      "total": 201,
+      "entry_level_offers": 17,
+      "junior_ratio": 8.5
+    },
+    {
+      "source": "total_results",
+      "technology": "Playwright",
+      "group": "qa",
+      "levels": {
+        "intern": 0,
+        "junior": 9,
+        "mid": 79,
+        "senior": 98
+      },
+      "total": 186,
+      "entry_level_offers": 9,
+      "junior_ratio": 4.8
+    },
+    {
+      "source": "total_results",
+      "technology": "Selenium",
+      "group": "qa",
+      "levels": {
+        "intern": 1,
+        "junior": 13,
+        "mid": 89,
+        "senior": 76
+      },
+      "total": 179,
+      "entry_level_offers": 14,
+      "junior_ratio": 7.8
+    },
+    {
+      "source": "total_results",
+      "technology": "PyTorch",
+      "group": "ai",
+      "levels": {
+        "intern": 1,
+        "junior": 3,
+        "mid": 43,
+        "senior": 60
+      },
+      "total": 107,
+      "entry_level_offers": 4,
+      "junior_ratio": 3.7
+    },
+    {
+      "source": "total_results",
+      "technology": "dbt",
+      "group": "data",
+      "levels": {
+        "intern": 0,
+        "junior": 3,
+        "mid": 32,
+        "senior": 65
+      },
+      "total": 100,
+      "entry_level_offers": 3,
+      "junior_ratio": 3.0
+    },
+    {
+      "source": "total_results",
+      "technology": "Next.js",
+      "group": "frontend",
+      "levels": {
+        "intern": 1,
+        "junior": 4,
+        "mid": 37,
+        "senior": 53
+      },
+      "total": 95,
+      "entry_level_offers": 5,
+      "junior_ratio": 5.3
+    },
+    {
+      "source": "total_results",
+      "technology": "Django",
+      "group": "backend",
+      "levels": {
+        "intern": 0,
+        "junior": 5,
+        "mid": 27,
+        "senior": 47
+      },
+      "total": 79,
+      "entry_level_offers": 5,
+      "junior_ratio": 6.3
+    },
+    {
+      "source": "total_results",
+      "technology": "Rust",
+      "group": "backend",
+      "levels": {
+        "intern": 0,
+        "junior": 3,
+        "mid": 16,
+        "senior": 58
+      },
+      "total": 77,
+      "entry_level_offers": 3,
+      "junior_ratio": 3.9
+    },
+    {
+      "source": "total_results",
+      "technology": "Cypress",
+      "group": "qa",
+      "levels": {
+        "intern": 2,
+        "junior": 7,
+        "mid": 26,
+        "senior": 33
+      },
+      "total": 68,
+      "entry_level_offers": 9,
+      "junior_ratio": 13.2
+    },
+    {
+      "source": "total_results",
+      "technology": "Laravel",
+      "group": "backend",
+      "levels": {
+        "intern": 1,
+        "junior": 3,
+        "mid": 27,
+        "senior": 26
+      },
+      "total": 57,
+      "entry_level_offers": 4,
+      "junior_ratio": 7.0
+    },
+    {
+      "source": "total_results",
+      "technology": "Vue",
+      "group": "frontend",
+      "levels": {
+        "intern": 0,
+        "junior": 3,
+        "mid": 14,
+        "senior": 18
+      },
+      "total": 35,
+      "entry_level_offers": 3,
+      "junior_ratio": 8.6
+    },
+    {
+      "source": "total_results",
+      "technology": "Jest",
+      "group": "qa",
+      "levels": {
+        "intern": 0,
+        "junior": 3,
+        "mid": 9,
+        "senior": 21
+      },
+      "total": 33,
+      "entry_level_offers": 3,
+      "junior_ratio": 9.1
+    },
+    {
+      "source": "total_results",
+      "technology": "Tailwind",
+      "group": "frontend",
+      "levels": {
+        "intern": 2,
+        "junior": 2,
+        "mid": 11,
+        "senior": 17
+      },
+      "total": 32,
+      "entry_level_offers": 4,
+      "junior_ratio": 12.5
+    },
+    {
+      "source": "total_results",
+      "technology": "Svelte",
+      "group": "frontend",
+      "levels": {
+        "intern": 1,
+        "junior": 0,
+        "mid": 1,
+        "senior": 1
+      },
+      "total": 3,
+      "entry_level_offers": 1,
+      "junior_ratio": 33.3
+    }
+  ],
+  "most_junior_friendly": [
+    {
+      "source": "total_results",
+      "technology": "Cypress",
+      "group": "qa",
+      "levels": {
+        "intern": 2,
+        "junior": 7,
+        "mid": 26,
+        "senior": 33
+      },
+      "total": 68,
+      "entry_level_offers": 9,
+      "junior_ratio": 13.2
+    },
+    {
+      "source": "total_results",
+      "technology": "Linux",
+      "group": "devops",
+      "levels": {
+        "intern": 14,
+        "junior": 124,
+        "mid": 540,
+        "senior": 501
+      },
+      "total": 1179,
+      "entry_level_offers": 138,
+      "junior_ratio": 11.7
+    },
+    {
+      "source": "total_results",
+      "technology": "JavaScript",
+      "group": "frontend",
+      "levels": {
+        "intern": 14,
+        "junior": 54,
+        "mid": 321,
+        "senior": 373
+      },
+      "total": 762,
+      "entry_level_offers": 68,
+      "junior_ratio": 8.9
+    },
+    {
+      "source": "total_results",
+      "technology": "PHP",
+      "group": "backend",
+      "levels": {
+        "intern": 2,
+        "junior": 15,
+        "mid": 98,
+        "senior": 86
+      },
+      "total": 201,
+      "entry_level_offers": 17,
+      "junior_ratio": 8.5
+    },
+    {
+      "source": "total_results",
+      "technology": "Power BI",
+      "group": "data",
+      "levels": {
+        "intern": 5,
+        "junior": 22,
+        "mid": 158,
+        "senior": 147
+      },
+      "total": 332,
+      "entry_level_offers": 27,
+      "junior_ratio": 8.1
+    },
+    {
+      "source": "total_results",
+      "technology": "Selenium",
+      "group": "qa",
+      "levels": {
+        "intern": 1,
+        "junior": 13,
+        "mid": 89,
+        "senior": 76
+      },
+      "total": 179,
+      "entry_level_offers": 14,
+      "junior_ratio": 7.8
+    },
+    {
+      "source": "total_results",
+      "technology": ".NET",
+      "group": "backend",
+      "levels": {
+        "intern": 9,
+        "junior": 34,
+        "mid": 200,
+        "senior": 318
+      },
+      "total": 561,
+      "entry_level_offers": 43,
+      "junior_ratio": 7.7
+    },
+    {
+      "source": "total_results",
+      "technology": "SQL",
+      "group": "data",
+      "levels": {
+        "intern": 29,
+        "junior": 168,
+        "mid": 1244,
+        "senior": 1331
+      },
+      "total": 2772,
+      "entry_level_offers": 197,
+      "junior_ratio": 7.1
+    },
+    {
+      "source": "total_results",
+      "technology": "C#",
+      "group": "backend",
+      "levels": {
+        "intern": 6,
+        "junior": 33,
+        "mid": 239,
+        "senior": 318
+      },
+      "total": 596,
+      "entry_level_offers": 39,
+      "junior_ratio": 6.5
+    },
+    {
+      "source": "total_results",
+      "technology": "Django",
+      "group": "backend",
+      "levels": {
+        "intern": 0,
+        "junior": 5,
+        "mid": 27,
+        "senior": 47
+      },
+      "total": 79,
+      "entry_level_offers": 5,
+      "junior_ratio": 6.3
+    },
+    {
+      "source": "total_results",
+      "technology": "Docker",
+      "group": "devops",
+      "levels": {
+        "intern": 9,
+        "junior": 56,
+        "mid": 419,
+        "senior": 569
+      },
+      "total": 1053,
+      "entry_level_offers": 65,
+      "junior_ratio": 6.2
+    },
+    {
+      "source": "total_results",
+      "technology": "Angular",
+      "group": "frontend",
+      "levels": {
+        "intern": 3,
+        "junior": 25,
+        "mid": 182,
+        "senior": 267
+      },
+      "total": 477,
+      "entry_level_offers": 28,
+      "junior_ratio": 5.9
+    }
+  ],
+  "salaries": {
+    "source": "sample (max 50/zapytanie)",
+    "by_seniority": {
+      "senior": {
+        "sample_size": 572,
+        "disclosure_rate": 55.2,
+        "median": 24000,
+        "p25": 21500,
+        "p75": 28560
+      },
+      "mid": {
+        "sample_size": 496,
+        "disclosure_rate": 49.5,
+        "median": 19320,
+        "p25": 15950,
+        "p75": 24360
+      },
+      "other": {
+        "sample_size": 3,
+        "disclosure_rate": 75.0,
+        "median": 11492,
+        "p25": 4903,
+        "p75": 23520
+      },
+      "intern": {
+        "sample_size": 44,
+        "disclosure_rate": 30.3,
+        "median": 9150,
+        "p25": 5880,
+        "p75": 13200
+      },
+      "junior": {
+        "sample_size": 174,
+        "disclosure_rate": 48.2,
+        "median": 10710,
+        "p25": 8000,
+        "p75": 14280
+      }
+    }
+  },
+  "learning_paths": {
+    "React": {
+      "source": "sample (max 50/zapytanie)",
+      "anchor": "React",
+      "seniority": "junior",
+      "sample_size": 27,
+      "skills": [
+        {
+          "skill": "JavaScript",
+          "count": 15,
+          "share": 55.6
+        },
+        {
+          "skill": "TypeScript",
+          "count": 11,
+          "share": 40.7
+        },
+        {
+          "skill": "Git",
+          "count": 9,
+          "share": 33.3
+        },
+        {
+          "skill": "Angular",
+          "count": 8,
+          "share": 29.6
+        },
+        {
+          "skill": "CSS",
+          "count": 6,
+          "share": 22.2
+        },
+        {
+          "skill": "Docker",
+          "count": 6,
+          "share": 22.2
+        },
+        {
+          "skill": "Java",
+          "count": 6,
+          "share": 22.2
+        },
+        {
+          "skill": "REST API",
+          "count": 5,
+          "share": 18.5
+        },
+        {
+          "skill": "HTML",
+          "count": 5,
+          "share": 18.5
+        }
+      ]
+    },
+    "Python": {
+      "source": "sample (max 50/zapytanie)",
+      "anchor": "Python",
+      "seniority": "junior",
+      "sample_size": 87,
+      "skills": [
+        {
+          "skill": "SQL",
+          "count": 35,
+          "share": 40.2
+        },
+        {
+          "skill": "Linux",
+          "count": 31,
+          "share": 35.6
+        },
+        {
+          "skill": "Docker",
+          "count": 29,
+          "share": 33.3
+        },
+        {
+          "skill": "Git",
+          "count": 24,
+          "share": 27.6
+        },
+        {
+          "skill": "Bash",
+          "count": 22,
+          "share": 25.3
+        },
+        {
+          "skill": "Java",
+          "count": 18,
+          "share": 20.7
+        },
+        {
+          "skill": "JavaScript",
+          "count": 15,
+          "share": 17.2
+        },
+        {
+          "skill": "Kubernetes",
+          "count": 15,
+          "share": 17.2
+        },
+        {
+          "skill": "AWS",
+          "count": 14,
+          "share": 16.1
+        }
+      ]
+    },
+    "Java": {
+      "source": "sample (max 50/zapytanie)",
+      "anchor": "Java",
+      "seniority": "junior",
+      "sample_size": 101,
+      "skills": [
+        {
+          "skill": "SQL",
+          "count": 39,
+          "share": 38.6
+        },
+        {
+          "skill": "Git",
+          "count": 26,
+          "share": 25.7
+        },
+        {
+          "skill": "Python",
+          "count": 25,
+          "share": 24.8
+        },
+        {
+          "skill": "CSS",
+          "count": 21,
+          "share": 20.8
+        },
+        {
+          "skill": "HTML",
+          "count": 21,
+          "share": 20.8
+        },
+        {
+          "skill": "Docker",
+          "count": 19,
+          "share": 18.8
+        },
+        {
+          "skill": "Angular",
+          "count": 18,
+          "share": 17.8
+        },
+        {
+          "skill": "TypeScript",
+          "count": 16,
+          "share": 15.8
+        }
+      ]
+    },
+    "SQL": {
+      "source": "sample (max 50/zapytanie)",
+      "anchor": "SQL",
+      "seniority": "junior",
+      "sample_size": 134,
+      "skills": [
+        {
+          "skill": "Python",
+          "count": 43,
+          "share": 32.1
+        },
+        {
+          "skill": "Java",
+          "count": 30,
+          "share": 22.4
+        },
+        {
+          "skill": "JavaScript",
+          "count": 29,
+          "share": 21.6
+        },
+        {
+          "skill": "Docker",
+          "count": 26,
+          "share": 19.4
+        },
+        {
+          "skill": "Git",
+          "count": 26,
+          "share": 19.4
+        },
+        {
+          "skill": "Linux",
+          "count": 23,
+          "share": 17.2
+        }
+      ]
+    },
+    "JavaScript": {
+      "source": "sample (max 50/zapytanie)",
+      "anchor": "JavaScript",
+      "seniority": "junior",
+      "sample_size": 56,
+      "skills": [
+        {
+          "skill": "SQL",
+          "count": 24,
+          "share": 42.9
+        },
+        {
+          "skill": "CSS",
+          "count": 21,
+          "share": 37.5
+        },
+        {
+          "skill": "HTML",
+          "count": 21,
+          "share": 37.5
+        },
+        {
+          "skill": "Git",
+          "count": 16,
+          "share": 28.6
+        },
+        {
+          "skill": "Python",
+          "count": 15,
+          "share": 26.8
+        },
+        {
+          "skill": "TypeScript",
+          "count": 15,
+          "share": 26.8
+        },
+        {
+          "skill": "Java",
+          "count": 13,
+          "share": 23.2
+        },
+        {
+          "skill": "C#",
+          "count": 11,
+          "share": 19.6
+        },
+        {
+          "skill": "React",
+          "count": 11,
+          "share": 19.6
+        },
+        {
+          "skill": "Linux",
+          "count": 10,
+          "share": 17.9
+        },
+        {
+          "skill": "Angular",
+          "count": 10,
+          "share": 17.9
+        }
+      ]
+    }
+  },
+  "top_junior_employers": [
+    {
+      "company": "B2B.NET S.A.",
+      "offers": 29
+    },
+    {
+      "company": "Allegro",
+      "offers": 10
+    },
+    {
+      "company": "ITEAMLY",
+      "offers": 6
+    },
+    {
+      "company": "Edge One Solutions",
+      "offers": 5
+    },
+    {
+      "company": "emagine",
+      "offers": 5
+    },
+    {
+      "company": "Netcompany",
+      "offers": 5
+    },
+    {
+      "company": "Hiberus Poland",
+      "offers": 5
+    },
+    {
+      "company": "Astek",
+      "offers": 4
+    },
+    {
+      "company": "Jit Team",
+      "offers": 4
+    },
+    {
+      "company": "Link Group",
+      "offers": 4
+    },
+    {
+      "company": "ITLT",
+      "offers": 4
+    },
+    {
+      "company": "Capgemini",
+      "offers": 4
+    },
+    {
+      "company": "MasterBorn Sp. z o.o.",
+      "offers": 3
+    },
+    {
+      "company": "Sii",
+      "offers": 3
+    },
+    {
+      "company": "Wazdan Services Limited",
+      "offers": 3
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Logi przebiegow
+*.log
+
+# Surowy korpus ofert NIE trafia do repo.
+#
+# To dosłowna kopia ogłoszeń zebranych z agregatora — ich redystrybucja to
+# nie jest coś, co wypada zrobić bez pytania. Do repo idą wyłącznie dane
+# zagregowane (measurements.jsonl, manifest.json, reports/), czyli liczby
+# policzone z tych ogłoszeń — a te są faktami o rynku, nie cudzą treścią.
+#
+# Korpus zostaje lokalnie i to na nim liczy się raporty.
+data/snapshots/*/jobs.jsonl
+
+# Środowisko
+.env
+.DS_Store
+.idea/
+.vscode/

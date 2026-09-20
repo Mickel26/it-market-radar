@@ -1,0 +1,10 @@
+{
+  "started_at": "2026-09-20T14:54:46.450362+00:00",
+  "finished_at": "2026-09-20T14:58:34.792540+00:00",
+  "window": "30d",
+  "queries_total": 189,
+  "queries_ok": 189,
+  "queries_failed": 0,
+  "unique_jobs": 2549,
+  "failures": []
+}
