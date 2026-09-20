@@ -25,6 +25,26 @@ python -m radar.collect --groups frontend,backend --seniorities junior,mid
 python -m radar.analyze --anchors React,TypeScript
 ```
 
+## Dashboard
+
+```bash
+python -m http.server        # i wejdz na http://localhost:8000
+```
+
+Statyczna strona bez zaleznosci i bez build stepu — czysty HTML, CSS i SVG
+rysowane z `data/reports/<data>.json`. Cala matematyka dzieje sie wczesniej, w
+`radar.analyze`; dashboard tylko rysuje gotowe liczby.
+
+Trzeba go podac przez serwer HTTP, a nie otworzyc plik z dysku — przegladarka
+blokuje wtedy odczyt JSON-a. Strona sama to zglosi, jesli sprobujesz.
+
+Dashboard czyta `data/reports/index.json` (spis raportow aktualizowany przez
+`radar.analyze`) i bierze najnowszy, wiec nie ma nigdzie wpisanej daty na
+sztywno.
+
+Kazda karta niesie znacznik zrodla — `dokladne liczby` albo `proba` — zgodnie
+z podzialem opisanym nizej. Kazdy wykres ma tez blizniaczy widok tabeli.
+
 ## Architektura
 
 ```
@@ -38,6 +58,10 @@ data/
   snapshots/<data>/jobs.jsonl           korpus ofert, deduplikowany po ID
   snapshots/<data>/manifest.json        metadane przebiegu + lista błędów
   reports/<data>.json                   policzony raport
+  reports/index.json                    spis raportów dla dashboardu
+index.html                              dashboard
+assets/dashboard.css                    tokeny kolorów, układ
+assets/dashboard.js                     wykresy SVG, bez zależności
 ```
 
 Zbieranie i analiza są rozdzielone celowo (ELT, nie ETL). Zmiana pomysłu na metrykę nie wymaga ponownego odpytywania serwera — a historycznych danych i tak nie dałoby się odtworzyć.
@@ -65,5 +89,9 @@ Serwer MCP jest w bardzo wczesnej becie, udostępniony za darmo przez społeczno
 
 ## Status
 
-Wczesna wersja. Zrobione: klient MCP, macierz pomiarowa, zbieranie, metryki, raport JSON.
-Następne: szereg czasowy między snapshotami, dashboard, cotygodniowy przebieg z crona.
+Wczesna wersja. Zrobione: klient MCP, macierz pomiarowa, zbieranie, metryki, raport JSON,
+dashboard dla pojedynczego snapshotu.
+Następne: szereg czasowy między snapshotami, cotygodniowy przebieg z crona.
+
+Dashboard celowo nie pokazuje jeszcze trendów — jest jeden snapshot, a wykres czasowy
+z jednym punktem udaje wiedzę, której nie ma. Trendy dochodzą, gdy uzbiera się kilka przebiegów.

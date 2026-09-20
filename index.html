@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Radar rynku pracy IT</title>
+    <meta
+      name="description"
+      content="Które technologie realnie wpuszczają początkujących na polskim rynku IT — policzone z ofert pracy, nie z opinii."
+    />
+    <link rel="stylesheet" href="assets/dashboard.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='%232a78d6' stroke-width='2.5'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%232a78d6'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="topbar">
+        <span class="brand">Radar rynku pracy IT</span>
+        <button id="theme-toggle" class="theme-toggle" type="button">Zmień motyw</button>
+      </div>
+
+      <header class="intro">
+        <h1>Które technologie realnie wpuszczają początkujących?</h1>
+        <p class="lede">
+          Wyszukiwarka ofert powie ci, ile jest ogłoszeń z Javą. Nie powie, że prawie wszystkie są dla seniorów. Ten
+          dashboard mierzy jedno: gdzie na polskim rynku IT są otwarte drzwi dla kogoś bez doświadczenia — i jaka jest
+          cena wejścia.
+        </p>
+        <div class="run-meta">
+          <span>Snapshot: <b id="run-date">—</b></span>
+          <span>Okno: <b id="run-window">—</b></span>
+          <span>Przebieg: <b id="run-queries">—</b></span>
+          <span>Korpus próby: <b id="run-corpus">—</b> ofert</span>
+          <span>Dane: <a href="https://czyjesteldorado.pl">czyjesteldorado.pl</a> (MCP)</span>
+        </div>
+      </header>
+
+      <div id="status" class="loading">Wczytuję raport…</div>
+
+      <main id="dashboard" hidden>
+        <!-- ---------------------------------------------------- liczba wiodaca -->
+        <div class="hero">
+          <div class="hero-figure">
+            <div class="hero-value" id="hero-value">—</div>
+            <div class="hero-label">
+              tyle ofert na rynku jest oznaczonych jako <b>junior</b>. Reszta wymaga doświadczenia.
+            </div>
+          </div>
+          <div class="tiles" id="tiles"></div>
+        </div>
+
+        <!-- ------------------------------------------------------ struktura -->
+        <section id="rynek">
+          <div class="sec-head">
+            <h2>Struktura rynku</h2>
+            <p>
+              Punkt wyjścia do wszystkiego poniżej: rynek jest zbudowany wokół ludzi, którzy już umieją. Junior i staż
+              razem to mniej niż co trzynasta oferta.
+            </p>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h3>Udział ofert według poziomu doświadczenia</h3>
+              <span class="src src-exact">dokładne liczby</span>
+            </div>
+            <p class="card-sub">Pełna liczba dopasowań zwrócona przez serwer, nie próba.</p>
+            <div class="chart" id="chart-market"></div>
+            <div id="market-toggle" style="margin-top: 14px"></div>
+            <div id="table-market"></div>
+          </div>
+        </section>
+
+        <!-- ------------------------------------------------------- ranking -->
+        <section id="technologie">
+          <div class="sec-head">
+            <h2>Gdzie są drzwi</h2>
+            <p>
+              Dwie różne odpowiedzi na to samo pytanie. <b>Liczba ofert entry-level</b> mówi, ile realnie jest miejsc do
+              zdobycia. <b>Odsetek</b> mówi, jak bardzo dana technologia jest otwarta na początkujących. Technologia
+              może wygrywać jeden ranking i przegrywać drugi — i to jest najciekawsza część tych danych.
+            </p>
+          </div>
+          <div class="card">
+            <div class="controls">
+              <div class="ctrl-group">
+                <span class="ctrl-label">Sortuj:</span>
+                <span id="tech-sort" class="ctrl-group"></span>
+              </div>
+              <div class="ctrl-group">
+                <span class="ctrl-label">Min. ofert:</span>
+                <span id="tech-min" class="ctrl-group"></span>
+              </div>
+              <div class="ctrl-group">
+                <span class="ctrl-label">Grupa:</span>
+                <span id="tech-groups" class="ctrl-group"></span>
+              </div>
+            </div>
+            <p class="card-sub" id="tech-note"></p>
+            <div class="chart" id="chart-tech"></div>
+            <div class="legend" style="margin-top: 16px">
+              <span class="src src-exact">dokładne liczby (total_results)</span>
+            </div>
+            <div id="tech-toggle" style="margin-top: 12px"></div>
+            <div id="table-tech"></div>
+          </div>
+        </section>
+
+        <!-- --------------------------------------------------------- place -->
+        <section id="place">
+          <div class="sec-head">
+            <h2>Cena wejścia</h2>
+            <p>
+              Rozpiętość między p25 a p75 to środkowa połowa ofert; kreska w środku to mediana. Różnica między medianą
+              juniora a seniora wynosi <b id="salary-gap">—</b>.
+            </p>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h3>Widełki miesięczne brutto według poziomu</h3>
+              <span class="src src-sample">próba ≤50 ofert/zapytanie</span>
+            </div>
+            <p class="card-sub">
+              Liczone wyłącznie z ofert, które widełki ujawniają — a robi to około połowy. Mediany są więc zawyżone
+              względem całego rynku.
+            </p>
+            <div class="chart" id="chart-salary"></div>
+            <div id="salary-toggle" style="margin-top: 14px"></div>
+            <div id="table-salary"></div>
+          </div>
+        </section>
+
+        <!-- ------------------------------------------------------- sciezki -->
+        <section id="sciezki">
+          <div class="sec-head">
+            <h2>Czego uczyć się obok</h2>
+            <p>
+              Nie z czyjejś roadmapy, tylko ze współwystępowania w realnych ogłoszeniach dla początkujących: jeśli
+              oferta wymienia technologię X, co jeszcze wymienia obok niej.
+            </p>
+          </div>
+          <div class="card">
+            <div class="controls">
+              <div class="ctrl-group">
+                <span class="ctrl-label">Umiem:</span>
+                <span id="path-tabs" class="ctrl-group" role="tablist"></span>
+              </div>
+              <span class="src src-sample">próba ≤50 ofert/zapytanie</span>
+            </div>
+            <p class="card-sub" id="path-meta"></p>
+            <div class="chart" id="chart-path"></div>
+            <div id="path-toggle" style="margin-top: 14px"></div>
+            <div id="table-path"></div>
+          </div>
+        </section>
+
+        <!-- ------------------------------------------------- tryb i kontrakt -->
+        <section id="warunki">
+          <div class="sec-head">
+            <h2>Na jakich warunkach</h2>
+            <p>
+              Im wyżej w hierarchii, tym więcej pracy zdalnej i tym częściej B2B. Junior dostaje hybrydę i umowę o
+              pracę — co przy pierwszej pracy bywa zaletą, a nie ograniczeniem.
+            </p>
+          </div>
+          <div class="two-col">
+            <div class="card">
+              <div class="card-head">
+                <h3>Tryb pracy</h3>
+                <span class="src src-exact">dokładne</span>
+              </div>
+              <p class="card-sub">Udział w obrębie poziomu.</p>
+              <div class="chart" id="chart-modes"></div>
+              <div id="modes-toggle" style="margin-top: 14px"></div>
+              <div id="table-modes"></div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <h3>Forma zatrudnienia</h3>
+                <span class="src src-exact">dokładne</span>
+              </div>
+              <p class="card-sub">Udział w obrębie poziomu.</p>
+              <div class="chart" id="chart-contracts"></div>
+              <div id="contracts-toggle" style="margin-top: 14px"></div>
+              <div id="table-contracts"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------------------------------------------------- pracodawcy -->
+        <section id="pracodawcy">
+          <div class="sec-head">
+            <h2>Kto zatrudnia początkujących</h2>
+            <p>Firmy z największą liczbą ofert entry-level w zebranej próbie ofert.</p>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h3>Najwięcej ofert dla początkujących</h3>
+              <span class="src src-sample">próba ≤50 ofert/zapytanie</span>
+            </div>
+            <p class="card-sub">
+              To ranking wewnątrz próby, nie pełnej bazy — firma z dużą liczbą ogłoszeń o zbliżonej treści wypada tu
+              wyżej niż w rzeczywistości.
+            </p>
+            <div class="chart" id="chart-employers"></div>
+            <div id="employers-toggle" style="margin-top: 14px"></div>
+            <div id="table-employers"></div>
+          </div>
+        </section>
+
+        <!-- --------------------------------------------------- zastrzezenia -->
+        <section id="zastrzezenia" class="caveats">
+          <div class="sec-head">
+            <h2>Jak to czytać</h2>
+            <p>
+              Każda liczba tutaj ma znany margines błędu. Te zastrzeżenia nie są drobnym drukiem — bez nich część
+              wykresów da się przeczytać źle.
+            </p>
+          </div>
+          <div class="card">
+            <ul>
+              <li>
+                <b>Dwa poziomy zaufania, nigdy mieszane.</b> Serwer zwraca maksymalnie 50 ofert na zapytanie i nie ma
+                paginacji, ale podaje pełną liczbę dopasowań. Liczby ofert i udziały pochodzą z tej pełnej liczby
+                (znacznik „dokładne"). Rozkłady — widełki, współwystępowanie technologii, pracodawcy — pochodzą z próby
+                (znacznik „próba"). Liczenie „ilu jest ofert" z próby byłoby najłatwiejszym sposobem, żeby skłamać
+                wykresem.
+              </li>
+              <li>
+                <b>Poziom doświadczenia to klasyfikacja agregatora</b>, nie treść ogłoszenia. Oferta opisana jako
+                „junior", która w wymaganiach ma trzy lata komercyjnego doświadczenia, i tak liczy się tu jako junior.
+                Części ofert agregator nie przypisuje żadnego poziomu — na wykresie struktury rynku mają własny segment
+                „bez poziomu", żeby udziały sumowały się do całego rynku, a nie do jego sklasyfikowanej części.
+              </li>
+              <li>
+                <b>Technologie dopasowywane są po frazie w ofercie.</b> Krótkie nazwy łapią fałszywe trafienia. Frazy są
+                cudzysłowione, co problem ogranicza, ale go nie usuwa.
+              </li>
+              <li>
+                <b>Widełki ujawnia około połowy ofert.</b> Mediany dotyczą wyłącznie tej połowy i są zawyżone względem
+                całego rynku — oferty bez widełek rzadko milczą dlatego, że płacą dużo.
+              </li>
+              <li>
+                <b>Mały mianownik zmyśla wyniki.</b> Technologia z trzema ofertami, z których jedna jest dla juniora,
+                pokazuje „33% otwartości". Dlatego ranking odsetkowy ma domyślny próg minimalnej liczby ofert — można
+                go zdjąć, ale wtedy górę listy zajmuje szum.
+              </li>
+              <li>
+                <b>To jest jeden snapshot, nie trend.</b> Zdjęcie rynku z 30-dniowego okna. Snapshoty są append-only,
+                więc kolejne przebiegi zbudują szereg czasowy, którego nie da się odtworzyć wstecz — oferty znikają.
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <footer>
+          Dane: <a href="https://czyjesteldorado.pl">czyjesteldorado.pl</a> przez eksperymentalny serwer MCP. Kod i
+          metodologia: <a href="https://github.com/Mickel26/it-market-radar">github.com/Mickel26/it-market-radar</a>.
+          Surowy korpus ofert celowo nie trafia do repozytorium — publikowane są wyłącznie liczby zagregowane.
+        </footer>
+      </main>
+    </div>
+
+    <div id="tip" role="tooltip" aria-live="polite"></div>
+    <script src="assets/dashboard.js"></script>
+  </body>
+</html>

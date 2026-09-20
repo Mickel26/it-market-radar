@@ -284,6 +284,17 @@ def print_summary(report: dict[str, Any]) -> None:
         print(f"  {anchor} (n={data['sample_size']}): {top}")
 
 
+def write_reports_index(reports_dir: Path) -> Path:
+    """Spis raportow dla dashboardu — inaczej musialby miec date wpisana na sztywno."""
+    days = sorted(p.stem for p in reports_dir.glob("*.json") if p.name != "index.json")
+    index_path = reports_dir / "index.json"
+    index_path.write_text(
+        json.dumps({"reports": days, "latest": days[-1] if days else None}, indent=2),
+        encoding="utf-8",
+    )
+    return index_path
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Analizuje najnowszy snapshot rynku.")
     parser.add_argument("--anchors", default="React,Python,Java,SQL,JavaScript")
@@ -296,6 +307,7 @@ def main(argv: list[str] | None = None) -> int:
     out_path = DATA_DIR / "reports" / f"{snapshot.day.isoformat()}.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_reports_index(out_path.parent)
 
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
