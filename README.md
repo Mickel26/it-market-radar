@@ -53,12 +53,15 @@ radar/
   queries.py      macierz pomiarowa — co mierzymy (jedyny plik, który zmienia się często)
   collect.py      przebieg zbierania → surowe pliki append-only
   analyze.py      metryki liczone offline z tego, co już na dysku
+  profile.py      profil kandydata: CV, eksport LinkedIna, schemat
+  match.py        dopasowywanie ofert do profilu — wyłącznie lokalnie
 data/
   snapshots/<data>/measurements.jsonl   jedna linia = jedna komórka macierzy
   snapshots/<data>/jobs.jsonl           korpus ofert, deduplikowany po ID
   snapshots/<data>/manifest.json        metadane przebiegu + lista błędów
   reports/<data>.json                   policzony raport
   reports/index.json                    spis raportów dla dashboardu
+profile/                                CV, profil i wyniki — NIE w repo (.gitignore)
 index.html                              dashboard
 assets/dashboard.css                    tokeny kolorów, układ
 assets/dashboard.js                     wykresy SVG, bez zależności
@@ -83,6 +86,49 @@ Dodatkowe zastrzeżenia:
 - Poziom `seniority` pochodzi z klasyfikacji agregatora, nie z treści ogłoszenia.
 - Dopasowanie technologii idzie po frazie w ofercie, więc „Go" czy „R" łapią fałszywe trafienia. Frazy są cudzysłowione, co ogranicza problem, ale go nie usuwa.
 
+## Dopasowywanie ofert do profilu
+
+Radar mierzy rynek. To jest druga, osobista strona tego samego korpusu: które
+konkretne oferty pasują do Ciebie i czego Ci do nich brakuje.
+
+```bash
+python -m radar.profile --init                 # szkielet profilu do wypełnienia
+python -m radar.profile --from-cv profile/cv.txt
+python -m radar.profile --from-linkedin ~/Downloads/Basic_LinkedInDataExport.zip
+python -m radar.match --html                   # ranking + profile/matches.html
+```
+
+**Wszystko dzieje się lokalnie.** Katalog `profile/` (CV, eksport z LinkedIna,
+wyniki) jest w `.gitignore` — repozytorium jest publiczne, a to są dane osobowe.
+Żaden kod w `match.py` ani `profile.py` niczego nie wysyła do sieci.
+
+LinkedIn czytamy z **oficjalnego eksportu** (Ustawienia → Prywatność danych →
+Pobierz kopię swoich danych), a nie przez scrapowanie — scrapowanie łamie ich
+regulamin i technicznie i tak nie działa. Eksport daje te same dane, legalnie.
+CV podaj jako `.txt`; parsera PDF-ów nie będzie, bo projekt nie ma zależności.
+
+### Jak liczona jest ocena
+
+Pokazujemy dwie liczby, bo mówią o czym innym:
+
+| Liczba | Odpowiada na pytanie |
+|---|---|
+| **Pokrycie** | jaki % wymagań oferty spełniasz — „czy mam szanse" |
+| **Trafienia** | ile Twoich umiejętności oferta wymienia — „czy to o mnie, czy przypadek" |
+
+Samo pokrycie kłamie: oferta z jednym wymaganiem, które akurat masz, to 100%
+pokrycia i zero informacji. Dlatego wynik końcowy mnożymy przez nasycenie liczbą
+trafień — pełny kredyt dopiero od trzech. To ta sama zasada, co próg minimalnej
+liczby ofert na dashboardzie: mały mianownik zmyśla wyniki.
+
+Oferta bez ujawnionych widełek **nie** odpada przy ustawionym `salary_min` —
+widełki podaje około połowy ogłoszeń i odrzucanie reszty za milczenie
+ucięłoby pół rynku. Tak samo oferta bez przypisanego poziomu.
+
+Najciekawszy jest nie sam ranking, tylko sekcja **„czego brakuje najczęściej"**:
+liczy braki w ofertach, które i tak do Ciebie pasują, czyli pokazuje, czego
+douczyć się, żeby te same oferty stały się osiągalne.
+
 ## Cotygodniowy przebieg
 
 `.github/workflows/collect.yml` odpala `radar.collect` + `radar.analyze` w każdy
@@ -106,8 +152,9 @@ Serwer MCP jest w bardzo wczesnej becie, udostępniony za darmo przez społeczno
 ## Status
 
 Wczesna wersja. Zrobione: klient MCP, macierz pomiarowa, zbieranie, metryki, raport JSON,
-dashboard dla pojedynczego snapshotu, cotygodniowy przebieg z crona.
-Następne: szereg czasowy między snapshotami.
+dashboard dla pojedynczego snapshotu, cotygodniowy przebieg z crona,
+lokalne dopasowywanie ofert do profilu.
+Następne: szereg czasowy między snapshotami, kanał powiadomień dla dopasowań.
 
 Dashboard celowo nie pokazuje jeszcze trendów — jest jeden snapshot, a wykres czasowy
 z jednym punktem udaje wiedzę, której nie ma. Trendy dochodzą, gdy uzbiera się kilka przebiegów.
