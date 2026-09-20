@@ -4,22 +4,22 @@
   "collection": {
     "queries_ok": 189,
     "queries_failed": 0,
-    "jobs_in_corpus": 2549
+    "jobs_in_corpus": 2552
   },
   "market": {
     "source": "total_results",
     "total_offers": 12500,
     "by_seniority": {
       "intern": 159,
-      "junior": 755,
-      "mid": 4664,
-      "senior": 6055
+      "junior": 766,
+      "mid": 4668,
+      "senior": 6125
     },
     "share_of_market": {
       "intern": 1.3,
-      "junior": 6.0,
+      "junior": 6.1,
       "mid": 37.3,
-      "senior": 48.4
+      "senior": 49.0
     }
   },
   "work_modes": {
@@ -30,17 +30,17 @@
     },
     "junior": {
       "remote": 193,
-      "hybrid": 410,
-      "office": 247
+      "hybrid": 411,
+      "office": 248
     },
     "mid": {
-      "remote": 1586,
-      "hybrid": 2623,
-      "office": 1009
+      "remote": 1600,
+      "hybrid": 2636,
+      "office": 1012
     },
     "senior": {
-      "remote": 2702,
-      "hybrid": 3248,
+      "remote": 2710,
+      "hybrid": 3285,
       "office": 759
     }
   },
@@ -51,18 +51,18 @@
       "internship": 64
     },
     "junior": {
-      "b2b": 290,
-      "employment_contract": 422,
+      "b2b": 293,
+      "employment_contract": 425,
       "internship": 6
     },
     "mid": {
-      "b2b": 2517,
-      "employment_contract": 2224,
+      "b2b": 2525,
+      "employment_contract": 2225,
       "internship": 4
     },
     "senior": {
-      "b2b": 3498,
-      "employment_contract": 1722,
+      "b2b": 3509,
+      "employment_contract": 1752,
       "internship": 5
     }
   },
@@ -74,10 +74,10 @@
       "levels": {
         "intern": 29,
         "junior": 168,
-        "mid": 1244,
-        "senior": 1331
+        "mid": 1246,
+        "senior": 1338
       },
-      "total": 2772,
+      "total": 2781,
       "entry_level_offers": 197,
       "junior_ratio": 7.1
     },
@@ -88,10 +88,10 @@
       "levels": {
         "intern": 28,
         "junior": 108,
-        "mid": 897,
-        "senior": 1380
+        "mid": 911,
+        "senior": 1386
       },
-      "total": 2413,
+      "total": 2433,
       "entry_level_offers": 136,
       "junior_ratio": 5.6
     },
@@ -102,10 +102,10 @@
       "levels": {
         "intern": 5,
         "junior": 66,
-        "mid": 535,
-        "senior": 1046
+        "mid": 536,
+        "senior": 1039
       },
-      "total": 1652,
+      "total": 1646,
       "entry_level_offers": 71,
       "junior_ratio": 4.3
     },
@@ -117,9 +117,9 @@
         "intern": 14,
         "junior": 57,
         "mid": 505,
-        "senior": 951
+        "senior": 954
       },
-      "total": 1527,
+      "total": 1530,
       "entry_level_offers": 71,
       "junior_ratio": 4.6
     },
@@ -130,10 +130,10 @@
       "levels": {
         "intern": 14,
         "junior": 124,
-        "mid": 540,
+        "mid": 539,
         "senior": 501
       },
-      "total": 1179,
+      "total": 1178,
       "entry_level_offers": 138,
       "junior_ratio": 11.7
     },
@@ -145,9 +145,9 @@
         "intern": 7,
         "junior": 30,
         "mid": 380,
-        "senior": 709
+        "senior": 710
       },
-      "total": 1126,
+      "total": 1127,
       "entry_level_offers": 37,
       "junior_ratio": 3.3
     },
@@ -158,10 +158,10 @@
       "levels": {
         "intern": 3,
         "junior": 32,
-        "mid": 310,
-        "senior": 722
+        "mid": 311,
+        "senior": 723
       },
-      "total": 1067,
+      "total": 1069,
       "entry_level_offers": 35,
       "junior_ratio": 3.3
     },
@@ -172,12 +172,12 @@
       "levels": {
         "intern": 9,
         "junior": 56,
-        "mid": 419,
-        "senior": 569
+        "mid": 417,
+        "senior": 576
       },
-      "total": 1053,
+      "total": 1058,
       "entry_level_offers": 65,
-      "junior_ratio": 6.2
+      "junior_ratio": 6.1
     },
     {
       "source": "total_results",
@@ -187,9 +187,9 @@
         "intern": 1,
         "junior": 17,
         "mid": 337,
-        "senior": 655
+        "senior": 653
       },
-      "total": 1010,
+      "total": 1008,
       "entry_level_offers": 18,
       "junior_ratio": 1.8
     },
@@ -200,10 +200,10 @@
       "levels": {
         "intern": 6,
         "junior": 21,
-        "mid": 313,
-        "senior": 448
+        "mid": 308,
+        "senior": 450
       },
-      "total": 788,
+      "total": 785,
       "entry_level_offers": 27,
       "junior_ratio": 3.4
     },
@@ -214,10 +214,10 @@
       "levels": {
         "intern": 14,
         "junior": 54,
-        "mid": 321,
-        "senior": 373
+        "mid": 319,
+        "senior": 377
       },
-      "total": 762,
+      "total": 764,
       "entry_level_offers": 68,
       "junior_ratio": 8.9
     },
@@ -229,9 +229,9 @@
         "intern": 1,
         "junior": 24,
         "mid": 217,
-        "senior": 456
+        "senior": 458
       },
-      "total": 698,
+      "total": 700,
       "entry_level_offers": 25,
       "junior_ratio": 3.6
     },
@@ -243,9 +243,9 @@
         "intern": 5,
         "junior": 18,
         "mid": 273,
-        "senior": 374
+        "senior": 372
       },
-      "total": 670,
+      "total": 668,
       "entry_level_offers": 23,
       "junior_ratio": 3.4
     },
@@ -257,9 +257,9 @@
         "intern": 9,
         "junior": 22,
         "mid": 199,
-        "senior": 385
+        "senior": 392
       },
-      "total": 615,
+      "total": 622,
       "entry_level_offers": 31,
       "junior_ratio": 5.0
     },
@@ -271,9 +271,9 @@
         "intern": 6,
         "junior": 33,
         "mid": 239,
-        "senior": 318
+        "senior": 319
       },
-      "total": 596,
+      "total": 597,
       "entry_level_offers": 39,
       "junior_ratio": 6.5
     },
@@ -284,12 +284,12 @@
       "levels": {
         "intern": 2,
         "junior": 16,
-        "mid": 152,
-        "senior": 400
+        "mid": 151,
+        "senior": 404
       },
-      "total": 570,
+      "total": 573,
       "entry_level_offers": 18,
-      "junior_ratio": 3.2
+      "junior_ratio": 3.1
     },
     {
       "source": "total_results",
@@ -298,12 +298,12 @@
       "levels": {
         "intern": 9,
         "junior": 34,
-        "mid": 200,
-        "senior": 318
+        "mid": 199,
+        "senior": 322
       },
-      "total": 561,
+      "total": 564,
       "entry_level_offers": 43,
-      "junior_ratio": 7.7
+      "junior_ratio": 7.6
     },
     {
       "source": "total_results",
@@ -313,11 +313,11 @@
         "intern": 3,
         "junior": 25,
         "mid": 182,
-        "senior": 267
+        "senior": 269
       },
-      "total": 477,
+      "total": 479,
       "entry_level_offers": 28,
-      "junior_ratio": 5.9
+      "junior_ratio": 5.8
     },
     {
       "source": "total_results",
@@ -327,9 +327,9 @@
         "intern": 1,
         "junior": 7,
         "mid": 97,
-        "senior": 242
+        "senior": 243
       },
-      "total": 347,
+      "total": 348,
       "entry_level_offers": 8,
       "junior_ratio": 2.3
     },
@@ -650,10 +650,10 @@
       "levels": {
         "intern": 14,
         "junior": 124,
-        "mid": 540,
+        "mid": 539,
         "senior": 501
       },
-      "total": 1179,
+      "total": 1178,
       "entry_level_offers": 138,
       "junior_ratio": 11.7
     },
@@ -664,10 +664,10 @@
       "levels": {
         "intern": 14,
         "junior": 54,
-        "mid": 321,
-        "senior": 373
+        "mid": 319,
+        "senior": 377
       },
-      "total": 762,
+      "total": 764,
       "entry_level_offers": 68,
       "junior_ratio": 8.9
     },
@@ -720,12 +720,12 @@
       "levels": {
         "intern": 9,
         "junior": 34,
-        "mid": 200,
-        "senior": 318
+        "mid": 199,
+        "senior": 322
       },
-      "total": 561,
+      "total": 564,
       "entry_level_offers": 43,
-      "junior_ratio": 7.7
+      "junior_ratio": 7.6
     },
     {
       "source": "total_results",
@@ -734,10 +734,10 @@
       "levels": {
         "intern": 29,
         "junior": 168,
-        "mid": 1244,
-        "senior": 1331
+        "mid": 1246,
+        "senior": 1338
       },
-      "total": 2772,
+      "total": 2781,
       "entry_level_offers": 197,
       "junior_ratio": 7.1
     },
@@ -749,9 +749,9 @@
         "intern": 6,
         "junior": 33,
         "mid": 239,
-        "senior": 318
+        "senior": 319
       },
-      "total": 596,
+      "total": 597,
       "entry_level_offers": 39,
       "junior_ratio": 6.5
     },
@@ -776,12 +776,12 @@
       "levels": {
         "intern": 9,
         "junior": 56,
-        "mid": 419,
-        "senior": 569
+        "mid": 417,
+        "senior": 576
       },
-      "total": 1053,
+      "total": 1058,
       "entry_level_offers": 65,
-      "junior_ratio": 6.2
+      "junior_ratio": 6.1
     },
     {
       "source": "total_results",
@@ -791,34 +791,34 @@
         "intern": 3,
         "junior": 25,
         "mid": 182,
-        "senior": 267
+        "senior": 269
       },
-      "total": 477,
+      "total": 479,
       "entry_level_offers": 28,
-      "junior_ratio": 5.9
+      "junior_ratio": 5.8
     }
   ],
   "salaries": {
     "source": "sample (max 50/zapytanie)",
     "by_seniority": {
       "senior": {
-        "sample_size": 572,
-        "disclosure_rate": 55.2,
+        "sample_size": 571,
+        "disclosure_rate": 55.1,
         "median": 24000,
         "p25": 21500,
         "p75": 28560
       },
       "mid": {
-        "sample_size": 496,
-        "disclosure_rate": 49.5,
+        "sample_size": 498,
+        "disclosure_rate": 49.6,
         "median": 19320,
         "p25": 15950,
         "p75": 24360
       },
       "other": {
-        "sample_size": 3,
-        "disclosure_rate": 75.0,
-        "median": 11492,
+        "sample_size": 4,
+        "disclosure_rate": 57.1,
+        "median": 8197,
         "p25": 4903,
         "p75": 23520
       },
@@ -831,7 +831,7 @@
       },
       "junior": {
         "sample_size": 174,
-        "disclosure_rate": 48.2,
+        "disclosure_rate": 48.5,
         "median": 10710,
         "p25": 8000,
         "p75": 14280
@@ -871,12 +871,12 @@
           "share": 22.2
         },
         {
-          "skill": "Docker",
+          "skill": "Java",
           "count": 6,
           "share": 22.2
         },
         {
-          "skill": "Java",
+          "skill": "Docker",
           "count": 6,
           "share": 22.2
         },
@@ -1083,12 +1083,12 @@
           "share": 19.6
         },
         {
-          "skill": "Linux",
+          "skill": "Angular",
           "count": 10,
           "share": 17.9
         },
         {
-          "skill": "Angular",
+          "skill": "Linux",
           "count": 10,
           "share": 17.9
         }
@@ -1102,7 +1102,7 @@
     },
     {
       "company": "Allegro",
-      "offers": 10
+      "offers": 9
     },
     {
       "company": "ITEAMLY",
