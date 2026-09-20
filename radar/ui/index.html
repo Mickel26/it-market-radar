@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Matcher ofert</title>
+    <link rel="stylesheet" href="/assets/dashboard.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='14' cy='14' r='9' fill='none' stroke='%232a78d6' stroke-width='3'/%3E%3Cpath d='M21 21l7 7' stroke='%232a78d6' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E"
+    />
+    <style>
+      /* Tylko to, czego nie ma w dashboardzie. Reszta jedzie na jego tokenach. */
+      .steps { counter-reset: step; }
+      section.step > .sec-head h2::before {
+        counter-increment: step;
+        content: counter(step);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        margin-right: 10px;
+        border-radius: 50%;
+        background: var(--accent-wash);
+        color: var(--accent);
+        font-size: 14px;
+        font-weight: 700;
+        vertical-align: 2px;
+      }
+      .field { margin-bottom: 18px; }
+      .field > label,
+      .field > .field-label {
+        display: block;
+        font-size: 13px;
+        font-weight: 560;
+        margin-bottom: 7px;
+      }
+      .field .hint { font-size: 12px; color: var(--text-muted); margin: 0 0 7px; font-weight: 400; }
+      .chips-edit { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 34px; }
+      .tag {
+        display: inline-flex; align-items: center; gap: 6px;
+        border-radius: 999px; padding: 4px 6px 4px 11px; font-size: 13px;
+        border: 1px solid var(--border); background: var(--wash);
+      }
+      .tag.learn { background: rgba(250, 178, 25, 0.16); }
+      .tag button {
+        border: none; background: none; cursor: pointer; color: var(--text-muted);
+        font: inherit; line-height: 1; padding: 2px 4px; border-radius: 50%;
+      }
+      .tag button:hover { color: var(--text-primary); background: var(--wash); }
+      input[type="text"], input[type="number"], select {
+        font: inherit; font-size: 14px; padding: 7px 11px; border-radius: 8px;
+        border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary);
+      }
+      input[type="text"]:focus-visible, input[type="number"]:focus-visible {
+        outline: 2px solid var(--accent); outline-offset: 1px;
+      }
+      .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+      .btn {
+        font: inherit; font-size: 14px; font-weight: 560; cursor: pointer;
+        padding: 9px 16px; border-radius: 8px; border: 1px solid var(--accent);
+        background: var(--accent); color: #fff;
+      }
+      .btn:hover { filter: brightness(1.08); }
+      .btn[disabled] { opacity: 0.5; cursor: not-allowed; filter: none; }
+      .btn.ghost { background: transparent; color: var(--text-primary); border-color: var(--border); }
+      .btn.ghost:hover { background: var(--wash); filter: none; }
+      .note { font-size: 13px; margin: 10px 0 0; }
+      .note.ok { color: var(--text-secondary); }
+      .note.bad { color: #d03b3b; }
+      .meter { height: 8px; border-radius: 999px; background: var(--wash); overflow: hidden; margin: 12px 0 6px; }
+      .meter > i { display: block; height: 100%; background: var(--accent); width: 0; transition: width 0.3s; }
+      .match { border-top: 1px solid var(--gridline); padding: 14px 0; }
+      .match:first-child { border-top: none; }
+      .match h3 { font-size: 15px; margin: 0 0 3px; font-weight: 620; }
+      .match h3 a { color: inherit; }
+      .score {
+        display: inline-block; min-width: 36px; padding: 1px 8px; margin-right: 8px;
+        border-radius: 6px; background: var(--accent); color: #fff;
+        font-size: 13px; font-weight: 700; text-align: center;
+        font-variant-numeric: tabular-nums;
+      }
+      .match .meta { color: var(--text-muted); font-size: 13px; margin: 0 0 8px; }
+      .match .chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 0; }
+      .sk { font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--border); }
+      .sk.have { background: rgba(12, 163, 12, 0.14); }
+      .sk.learn { background: rgba(250, 178, 25, 0.18); }
+      .sk.miss { opacity: 0.55; }
+      .gaps { display: flex; flex-wrap: wrap; gap: 8px; }
+      .gaps span { font-size: 13px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 999px; padding: 3px 11px; }
+      .gaps b { color: var(--text-primary); }
+      datalist { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="topbar">
+        <span class="brand">Matcher ofert · lokalnie</span>
+        <button id="theme-toggle" class="theme-toggle" type="button">Zmień motyw</button>
+      </div>
+
+      <header class="intro">
+        <h1>Które oferty pasują do Ciebie</h1>
+        <p class="lede">
+          Wszystko poniżej dzieje się na Twoim komputerze. Profil, CV i korpus ofert nie opuszczają dysku — serwer
+          słucha tylko na <code>127.0.0.1</code> i niczego nie wysyła na zewnątrz poza samym pobieraniem ogłoszeń.
+        </p>
+      </header>
+
+      <div id="boot" class="loading">Łączę z lokalnym serwerem…</div>
+
+      <main id="app" class="steps" hidden>
+        <!-- ------------------------------------------------------- profil -->
+        <section class="step">
+          <div class="sec-head">
+            <h2>Twój profil</h2>
+            <p>Czego umiesz i czego szukasz. Zapisuje się do <code>profile/profile.json</code>, który jest poza repo.</p>
+          </div>
+
+          <div class="card">
+            <div class="field">
+              <span class="field-label">Umiejętności</span>
+              <p class="hint">To one decydują o dopasowaniu. Wpisz nazwę i naciśnij Enter.</p>
+              <div class="chips-edit" id="skills"></div>
+              <div class="row" style="margin-top: 10px">
+                <input type="text" id="skill-input" list="vocab" placeholder="np. SQL" size="22" />
+                <datalist id="vocab"></datalist>
+                <button class="btn ghost" type="button" id="skill-add">Dodaj</button>
+              </div>
+            </div>
+
+            <div class="field">
+              <span class="field-label">Czego się właśnie uczysz</span>
+              <p class="hint">Liczy się za połowę — oferta, która tego wymaga, nie odpada, ale nie jest też trafieniem.</p>
+              <div class="chips-edit" id="learning"></div>
+              <div class="row" style="margin-top: 10px">
+                <input type="text" id="learning-input" list="vocab" placeholder="np. TypeScript" size="22" />
+                <button class="btn ghost" type="button" id="learning-add">Dodaj</button>
+              </div>
+            </div>
+
+            <div class="field">
+              <span class="field-label">Wczytaj z pliku</span>
+              <p class="hint">
+                Podpowie umiejętności — przejrzyj je potem, bo wyszukiwanie po frazie łapie też rzeczy, których nie
+                umiesz. Pliki są czytane lokalnie i nigdzie nie trafiają.
+              </p>
+              <div class="row">
+                <label class="btn ghost" for="cv-file">Z CV (.txt)</label>
+                <input type="file" id="cv-file" accept=".txt,.md,text/plain" hidden />
+                <label class="btn ghost" for="li-file">Z eksportu LinkedIna (.zip)</label>
+                <input type="file" id="li-file" accept=".zip" hidden />
+                <span class="note ok" id="extract-note"></span>
+              </div>
+            </div>
+
+            <div class="field">
+              <span class="field-label">Poziom</span>
+              <div class="chips-edit" id="seniority"></div>
+            </div>
+
+            <div class="two-col" style="gap: 24px">
+              <div class="field">
+                <label for="salary">Minimalne widełki (zł/mies.)</label>
+                <p class="hint">Oferta bez podanych widełek i tak przejdzie — podaje je tylko połowa ogłoszeń.</p>
+                <input type="number" id="salary" min="0" step="500" placeholder="bez progu" />
+              </div>
+              <div class="field">
+                <label for="exclude-skills">Technologie, których nie chcesz</label>
+                <p class="hint">Po przecinku. Oferta z którąkolwiek z nich wypada z wyników.</p>
+                <input type="text" id="exclude-skills" placeholder="np. Java, PHP" style="width: 100%" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="exclude-companies">Firmy, których nie chcesz</label>
+              <p class="hint">Po przecinku, dokładna nazwa z ogłoszenia.</p>
+              <input type="text" id="exclude-companies" placeholder="np. Jakaś Firma S.A." style="width: 100%" />
+            </div>
+
+            <div class="row">
+              <button class="btn" type="button" id="save">Zapisz profil</button>
+              <span class="note" id="save-note"></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ------------------------------------------------------- oferty -->
+        <section class="step">
+          <div class="sec-head">
+            <h2>Oferty do przeszukania</h2>
+            <p>
+              Korpus ogłoszeń zbierany jest na Twój dysk i nie trafia do repozytorium — to dosłowna kopia cudzych
+              ogłoszeń. Jeden przebieg to około 190 zapytań i ~4 minuty.
+            </p>
+          </div>
+          <div class="card">
+            <div id="corpus-state"></div>
+            <div class="meter" id="collect-meter" hidden><i></i></div>
+            <div class="row" style="margin-top: 14px">
+              <button class="btn ghost" type="button" id="collect">Zbierz świeże oferty</button>
+              <span class="note" id="collect-note"></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- -------------------------------------------------- dopasowania -->
+        <section class="step">
+          <div class="sec-head">
+            <h2>Dopasowania</h2>
+            <p>
+              <b>Wynik</b> łączy dwie rzeczy: jaki procent wymagań oferty spełniasz i ile Twoich umiejętności oferta w
+              ogóle wymienia. Oferta z jednym wymaganiem, które akurat masz, to 100% pokrycia i zero informacji —
+              dlatego pełny wynik należy się dopiero od trzech trafień.
+            </p>
+          </div>
+          <div class="card">
+            <div class="row" style="margin-bottom: 4px">
+              <button class="btn" type="button" id="run">Pokaż dopasowania</button>
+              <label for="min-score" style="font-size: 13px; color: var(--text-muted)">minimalny wynik</label>
+              <input type="number" id="min-score" value="0" min="0" max="100" step="5" style="width: 80px" />
+              <span class="note" id="run-note"></span>
+            </div>
+            <p class="card-sub" id="result-meta" style="margin: 14px 0 0"></p>
+            <div id="gaps-box" hidden style="margin-top: 16px">
+              <span class="field-label">Czego brakuje najczęściej w ofertach, które i tak pasują</span>
+              <p class="hint">To jest Twoja lista do nauki — wyprowadzona z realnych szans, nie z czyjejś roadmapy.</p>
+              <div class="gaps" id="gaps"></div>
+            </div>
+            <div id="matches" style="margin-top: 8px"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/ui/app.js"></script>
+  </body>
+</html>

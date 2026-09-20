@@ -55,6 +55,8 @@ radar/
   analyze.py      metryki liczone offline z tego, co już na dysku
   profile.py      profil kandydata: CV, eksport LinkedIna, schemat
   match.py        dopasowywanie ofert do profilu — wyłącznie lokalnie
+  server.py       lokalny serwer interfejsu matchera (tylko 127.0.0.1)
+  ui/             strony tego interfejsu — poza dashboardem publicznym
 data/
   snapshots/<data>/measurements.jsonl   jedna linia = jedna komórka macierzy
   snapshots/<data>/jobs.jsonl           korpus ofert, deduplikowany po ID
@@ -91,6 +93,20 @@ Dodatkowe zastrzeżenia:
 
 Radar mierzy rynek. To jest druga, osobista strona tego samego korpusu: które
 konkretne oferty pasują do Ciebie i czego Ci do nich brakuje.
+
+```bash
+python -m radar.server
+```
+
+Otwiera `http://127.0.0.1:8765` — profil, zbieranie ofert i wyniki klika się
+w przeglądarce. To jedyna komenda, której potrzebujesz.
+
+Serwer słucha **wyłącznie na pętli zwrotnej**. Związanie go z `0.0.0.0`
+wystawiłoby czyjeś CV i korpus ofert na całą sieć lokalną, więc tego nie robi
+i nie ma na to przełącznika. Strony z `radar/ui/` leżą poza tym, co publikuje
+dashboard, i bez tego serwera są martwe — same nie mają skąd wziąć danych.
+
+Jeśli wolisz konsolę, to samo bez interfejsu:
 
 ```bash
 python -m radar.profile --init                 # szkielet profilu do wypełnienia
