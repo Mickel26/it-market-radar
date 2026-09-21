@@ -1,26 +1,32 @@
 {
-  "generated_at": "2026-09-20T16:07:04.255772+00:00",
+  "generated_at": "2026-09-21T12:24:01.929798+00:00",
   "dates": [
-    "2026-09-20"
+    "2026-09-20",
+    "2026-09-21"
   ],
-  "snapshots": 1,
+  "snapshots": 2,
   "market": {
     "source": "total_results",
     "total_offers": [
-      12500
+      12500,
+      12305
     ],
     "share_of_market": {
       "intern": [
-        1.3
+        1.3,
+        1.1
       ],
       "junior": [
-        6.1
+        6.1,
+        6.2
       ],
       "mid": [
-        37.3
+        37.3,
+        37.4
       ],
       "senior": [
-        49.0
+        49.0,
+        48.7
       ]
     }
   },
@@ -29,481 +35,601 @@
     "series": {
       ".NET": {
         "entry_level_offers": [
+          43,
           43
         ],
         "junior_ratio": [
-          7.6
+          7.6,
+          7.7
         ],
         "total": [
-          564
+          564,
+          556
         ],
         "group": "backend"
       },
       "AWS": {
         "entry_level_offers": [
-          35
+          35,
+          40
         ],
         "junior_ratio": [
-          3.3
+          3.3,
+          3.7
         ],
         "total": [
-          1069
+          1069,
+          1090
         ],
         "group": "devops"
       },
       "Angular": {
         "entry_level_offers": [
+          28,
           28
         ],
         "junior_ratio": [
-          5.8
+          5.8,
+          5.9
         ],
         "total": [
-          479
+          479,
+          478
         ],
         "group": "frontend"
       },
       "Azure": {
         "entry_level_offers": [
-          71
+          71,
+          74
         ],
         "junior_ratio": [
-          4.3
+          4.3,
+          4.5
         ],
         "total": [
-          1646
+          1646,
+          1650
         ],
         "group": "devops"
       },
       "C#": {
         "entry_level_offers": [
+          39,
           39
         ],
         "junior_ratio": [
-          6.5
+          6.5,
+          6.7
         ],
         "total": [
-          597
+          597,
+          586
         ],
         "group": "backend"
       },
       "CI/CD": {
         "entry_level_offers": [
-          18
+          18,
+          22
         ],
         "junior_ratio": [
-          1.8
+          1.8,
+          2.2
         ],
         "total": [
-          1008
+          1008,
+          1003
         ],
         "group": "devops"
       },
       "Cypress": {
         "entry_level_offers": [
-          9
+          9,
+          7
         ],
         "junior_ratio": [
-          13.2
+          13.2,
+          10.6
         ],
         "total": [
-          68
+          68,
+          66
         ],
         "group": "qa"
       },
       "Django": {
         "entry_level_offers": [
+          5,
           5
         ],
         "junior_ratio": [
-          6.3
+          6.3,
+          6.7
         ],
         "total": [
-          79
+          79,
+          75
         ],
         "group": "backend"
       },
       "Docker": {
         "entry_level_offers": [
-          65
+          65,
+          64
         ],
         "junior_ratio": [
-          6.1
+          6.1,
+          6.2
         ],
         "total": [
-          1058
+          1058,
+          1040
         ],
         "group": "devops"
       },
       "Go": {
         "entry_level_offers": [
-          13
+          13,
+          17
         ],
         "junior_ratio": [
-          4.4
+          4.4,
+          5.4
         ],
         "total": [
-          297
+          297,
+          313
         ],
         "group": "backend"
       },
       "Java": {
         "entry_level_offers": [
-          71
+          71,
+          70
         ],
         "junior_ratio": [
+          4.6,
           4.6
         ],
         "total": [
-          1530
+          1530,
+          1511
         ],
         "group": "backend"
       },
       "JavaScript": {
         "entry_level_offers": [
+          68,
           68
         ],
         "junior_ratio": [
+          8.9,
           8.9
         ],
         "total": [
-          764
+          764,
+          767
         ],
         "group": "frontend"
       },
       "Jest": {
         "entry_level_offers": [
+          3,
           3
         ],
         "junior_ratio": [
-          9.1
+          9.1,
+          9.4
         ],
         "total": [
-          33
+          33,
+          32
         ],
         "group": "qa"
       },
       "Kotlin": {
         "entry_level_offers": [
-          15
+          15,
+          13
         ],
         "junior_ratio": [
-          5.5
+          5.5,
+          4.9
         ],
         "total": [
-          274
+          274,
+          265
         ],
         "group": "backend"
       },
       "Kubernetes": {
         "entry_level_offers": [
+          37,
           37
         ],
         "junior_ratio": [
+          3.3,
           3.3
         ],
         "total": [
-          1127
+          1127,
+          1123
         ],
         "group": "devops"
       },
       "LLM": {
         "entry_level_offers": [
+          8,
           8
         ],
         "junior_ratio": [
+          2.3,
           2.3
         ],
         "total": [
-          348
+          348,
+          344
         ],
         "group": "ai"
       },
       "Laravel": {
         "entry_level_offers": [
+          4,
           4
         ],
         "junior_ratio": [
+          7.0,
           7.0
         ],
         "total": [
+          57,
           57
         ],
         "group": "backend"
       },
       "Linux": {
         "entry_level_offers": [
-          138
+          138,
+          136
         ],
         "junior_ratio": [
+          11.7,
           11.7
         ],
         "total": [
-          1178
+          1178,
+          1163
         ],
         "group": "devops"
       },
       "Machine Learning": {
         "entry_level_offers": [
-          9
+          9,
+          7
         ],
         "junior_ratio": [
-          3.2
+          3.2,
+          2.6
         ],
         "total": [
-          281
+          281,
+          265
         ],
         "group": "ai"
       },
       "Next.js": {
         "entry_level_offers": [
+          5,
           5
         ],
         "junior_ratio": [
+          5.3,
           5.3
         ],
         "total": [
+          95,
           95
         ],
         "group": "frontend"
       },
       "Node.js": {
         "entry_level_offers": [
-          10
+          10,
+          11
         ],
         "junior_ratio": [
-          3.4
+          3.4,
+          3.6
         ],
         "total": [
-          293
+          293,
+          302
         ],
         "group": "backend"
       },
       "PHP": {
         "entry_level_offers": [
+          17,
           17
         ],
         "junior_ratio": [
-          8.5
+          8.5,
+          8.6
         ],
         "total": [
-          201
+          201,
+          198
         ],
         "group": "backend"
       },
       "Playwright": {
         "entry_level_offers": [
+          9,
           9
         ],
         "junior_ratio": [
-          4.8
+          4.8,
+          4.9
         ],
         "total": [
-          186
+          186,
+          182
         ],
         "group": "qa"
       },
       "PostgreSQL": {
         "entry_level_offers": [
-          23
+          23,
+          19
         ],
         "junior_ratio": [
-          3.4
+          3.4,
+          2.9
         ],
         "total": [
-          668
+          668,
+          660
         ],
         "group": "data"
       },
       "Power BI": {
         "entry_level_offers": [
+          27,
           27
         ],
         "junior_ratio": [
-          8.1
+          8.1,
+          8.2
         ],
         "total": [
-          332
+          332,
+          329
         ],
         "group": "data"
       },
       "PyTorch": {
         "entry_level_offers": [
-          4
+          4,
+          5
         ],
         "junior_ratio": [
-          3.7
+          3.7,
+          5.1
         ],
         "total": [
-          107
+          107,
+          98
         ],
         "group": "ai"
       },
       "Python": {
         "entry_level_offers": [
-          136
+          136,
+          140
         ],
         "junior_ratio": [
-          5.6
+          5.6,
+          5.9
         ],
         "total": [
-          2433
+          2433,
+          2388
         ],
         "group": "backend"
       },
       "React": {
         "entry_level_offers": [
-          31
+          31,
+          32
         ],
         "junior_ratio": [
-          5.0
+          5.0,
+          5.1
         ],
         "total": [
-          622
+          622,
+          626
         ],
         "group": "frontend"
       },
       "Rust": {
         "entry_level_offers": [
+          3,
           3
         ],
         "junior_ratio": [
+          3.9,
           3.9
         ],
         "total": [
-          77
+          77,
+          76
         ],
         "group": "backend"
       },
       "SQL": {
         "entry_level_offers": [
-          197
+          197,
+          190
         ],
         "junior_ratio": [
-          7.1
+          7.1,
+          6.9
         ],
         "total": [
-          2781
+          2781,
+          2743
         ],
         "group": "data"
       },
       "Selenium": {
         "entry_level_offers": [
+          14,
           14
         ],
         "junior_ratio": [
+          7.8,
           7.8
         ],
         "total": [
-          179
+          179,
+          180
         ],
         "group": "qa"
       },
       "Snowflake": {
         "entry_level_offers": [
-          4
+          4,
+          5
         ],
         "junior_ratio": [
-          1.9
+          1.9,
+          2.3
         ],
         "total": [
-          213
+          213,
+          218
         ],
         "group": "data"
       },
       "Spark": {
         "entry_level_offers": [
+          6,
           6
         ],
         "junior_ratio": [
+          2.5,
           2.5
         ],
         "total": [
-          238
+          238,
+          239
         ],
         "group": "data"
       },
       "Spring": {
         "entry_level_offers": [
+          25,
           25
         ],
         "junior_ratio": [
+          3.6,
           3.6
         ],
         "total": [
-          700
+          700,
+          689
         ],
         "group": "backend"
       },
       "Svelte": {
         "entry_level_offers": [
+          1,
           1
         ],
         "junior_ratio": [
+          33.3,
           33.3
         ],
         "total": [
+          3,
           3
         ],
         "group": "frontend"
       },
       "Tailwind": {
         "entry_level_offers": [
+          4,
           4
         ],
         "junior_ratio": [
+          12.5,
           12.5
         ],
         "total": [
+          32,
           32
         ],
         "group": "frontend"
       },
       "Terraform": {
         "entry_level_offers": [
-          18
+          18,
+          22
         ],
         "junior_ratio": [
-          3.1
+          3.1,
+          3.8
         ],
         "total": [
-          573
+          573,
+          578
         ],
         "group": "devops"
       },
       "TypeScript": {
         "entry_level_offers": [
+          27,
           27
         ],
         "junior_ratio": [
+          3.4,
           3.4
         ],
         "total": [
-          785
+          785,
+          784
         ],
         "group": "frontend"
       },
       "Vue": {
         "entry_level_offers": [
+          3,
           3
         ],
         "junior_ratio": [
+          8.6,
           8.6
         ],
         "total": [
+          35,
           35
         ],
         "group": "frontend"
       },
       "dbt": {
         "entry_level_offers": [
-          3
+          3,
+          4
         ],
         "junior_ratio": [
-          3.0
+          3.0,
+          4.0
         ],
         "total": [
-          100
+          100,
+          99
         ],
         "group": "data"
       }
@@ -514,22 +640,26 @@
     "by_seniority": {
       "intern": {
         "median": [
-          9150
+          9150,
+          5880
         ]
       },
       "junior": {
         "median": [
-          10710
+          10710,
+          10920
         ]
       },
       "mid": {
         "median": [
+          19320,
           19320
         ]
       },
       "senior": {
         "median": [
-          24000
+          24000,
+          24150
         ]
       }
     }
