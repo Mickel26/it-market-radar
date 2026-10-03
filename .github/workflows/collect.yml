@@ -29,20 +29,29 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           # Projekt nie ma zaleznosci - nie ma czego instalowac ani cache'owac.
 
+      # Niepelny przebieg tez ma wartosc: kazda zebrana komorka jest
+      # nieodtwarzalna. 28.09 kod wyjscia 1 z tego kroku pominal analize
+      # i commit, wiec przepadly tez 103 poprawne pomiary. Teraz porazka
+      # zbierania nie blokuje zapisu - zglaszamy ja na samym koncu.
       - name: Zbierz snapshot
+        id: collect
+        continue-on-error: true
         run: python -m radar.collect
 
       - name: Policz raport
+        id: analyze
+        continue-on-error: true
         run: python -m radar.analyze
 
       - name: Zacommituj wylacznie dane zagregowane
+        if: steps.analyze.outcome == 'success'
         run: |
           set -euo pipefail
 
@@ -72,8 +81,20 @@ jobs:
 
           git commit -m "Snapshot $(date -u +%Y-%m-%d)" \
                      -m "Przebieg automatyczny. Tylko dane zagregowane; korpus ofert zostal na runnerze."
+          # Przebieg trwa kilka minut; jesli w tym czasie ktos wypchnal cos
+          # na main, zwykly push by odpadl i zebrane dane by przepadly.
+          git pull --rebase origin main
           git push
 
       - name: Podsumowanie przebiegu
         if: always()
         run: python .github/scripts/run_summary.py >> "$GITHUB_STEP_SUMMARY"
+
+      # Czerwony przebieg = mail od GitHuba do wlasciciela repo. Bez tego
+      # kroku continue-on-error zamiotlby awarie pod dywan i nikt by nie
+      # wiedzial, ze w szeregu czasowym jest dziura.
+      - name: Zglos niepelny przebieg
+        if: steps.collect.outcome == 'failure' || steps.analyze.outcome == 'failure'
+        run: |
+          echo "::error::Przebieg niepelny (zbieranie: ${{ steps.collect.outcome }}, analiza: ${{ steps.analyze.outcome }}). To, co sie dalo zebrac, zostalo zapisane - szczegoly w Summary."
+          exit 1

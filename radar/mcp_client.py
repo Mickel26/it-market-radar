@@ -23,6 +23,18 @@ class MCPError(RuntimeError):
     """Serwer odpowiedzial, ale trescia bledu JSON-RPC."""
 
 
+class ToolError(RuntimeError):
+    """JSON-RPC przeszedl, ale narzedzie zwrocilo blad albo nie-JSON."""
+
+
+def _excerpt(text: str, limit: int = 160) -> str:
+    """Poczatek odpowiedzi serwera do logu - dosc, zeby zobaczyc przyczyne."""
+    flat = " ".join((text or "").split())
+    if not flat:
+        return "(pusta odpowiedz)"
+    return flat if len(flat) <= limit else flat[:limit] + "…"
+
+
 class SessionExpired(RuntimeError):
     """Serwer nie zna juz naszego mcp-session-id - trzeba zrobic initialize."""
 
@@ -194,9 +206,30 @@ class EldoradoClient:
         if not self._session_id:
             self.connect()
 
-        result = self._rpc("tools/call", {"name": "search_jobs", "arguments": arguments})
-        blocks = result.get("content", [])
-        for block in blocks:
-            if block.get("type") == "text":
-                return json.loads(block["text"])
-        return {"jobs": [], "shown_results": 0, "total_results": 0}
+        # Serwer potrafi odpowiedziec poprawnym JSON-RPC, w ktorym samo narzedzie
+        # zglasza blad (isError) albo zwraca tekst, ktory nie jest JSON-em -
+        # np. komunikat o limicie. To tez bywa przejsciowe, wiec dostaje ten sam
+        # backoff co 429/5xx. Bez tego 28.09 klient po pierwszym takim bledzie
+        # walil w serwer co 1,2 s przez reszte przebiegu i stracil polowe pomiarow.
+        last_error: Exception | None = None
+        for attempt in range(self.max_retries):
+            result = self._rpc("tools/call", {"name": "search_jobs", "arguments": arguments})
+            text = next(
+                (block.get("text", "") for block in result.get("content", []) if block.get("type") == "text"),
+                None,
+            )
+            if text is None:
+                return {"jobs": [], "shown_results": 0, "total_results": 0}
+
+            if result.get("isError"):
+                last_error = ToolError(_excerpt(text))
+            else:
+                try:
+                    return json.loads(text)
+                except json.JSONDecodeError:
+                    # Pokazujemy, CO przyszlo, a nie tylko ze nie jest JSON-em -
+                    # "Expecting value: line 1 column 1" niczego nie diagnozuje.
+                    last_error = ToolError(f"odpowiedz nie jest JSON-em: {_excerpt(text)}")
+            self._backoff(attempt)
+
+        raise last_error or ToolError("search_jobs: brak odpowiedzi")

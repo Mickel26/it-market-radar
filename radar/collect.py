@@ -17,6 +17,7 @@ import argparse
 import json
 import re
 import sys
+import time
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -82,10 +83,36 @@ class SnapshotWriter:
         self._jobs.flush()
         return total, new
 
-    def write_manifest(self, manifest: dict[str, Any]) -> None:
-        (self.dir / "manifest.json").write_text(
-            json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+    def write_manifest(self, run_record: dict[str, Any]) -> None:
+        """Dopisuje przebieg do manifestu dnia, nie nadpisujac poprzednich.
+
+        Kilka przebiegow tego samego dnia dopisuje sie do tych samych plikow,
+        wiec manifest musi pamietac je wszystkie. Wczesniej nieudany przebieg
+        zamazywal zerami zapis udanego - a to jedyny slad, ile danych w tym
+        katalogu faktycznie jest.
+
+        Pola na gorze opisuja ostatni przebieg, ktory COKOLWIEK zebral: przebieg
+        z zerem udanych zapytan nie dodal ani jednej linii do snapshotu, wiec
+        nie ma prawa zmieniac jego opisu. Trafia tylko do historii w `runs`.
+        """
+        path = self.dir / "manifest.json"
+        previous: dict[str, Any] = {}
+        if path.exists():
+            try:
+                previous = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                previous = {}
+
+        runs = list(previous.get("runs") or [])
+        if not runs and previous.get("started_at"):
+            # Manifest sprzed wprowadzenia historii: jego jedyny przebieg
+            # staje sie pierwszym wpisem, zamiast przepasc.
+            runs.append({k: v for k, v in previous.items() if k != "runs"})
+        runs.append(run_record)
+
+        head = run_record if run_record.get("queries_ok") else {k: v for k, v in previous.items() if k != "runs"}
+        manifest = {**(head or run_record), "runs": runs}
+        path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def close(self) -> None:
         self._measurements.close()
@@ -96,6 +123,76 @@ class SnapshotWriter:
         return len(self._seen_jobs)
 
 
+# Ile nieudanych zapytan pod rzad uznajemy za awarie serwera, a nie pech.
+FAILURE_STREAK = 5
+# Przerwa po takiej serii. 28.09 serwer wrocil po kilku minutach - dalsze
+# odpytywanie co 1,2 s tylko go dobijalo i palilo kolejne komorki macierzy.
+COOLDOWN_SECONDS = 90
+# Ile takich przerw w jednym przebiegu, zanim uznamy, ze dzis sie nie da.
+# Ogranicza tez czas: workflow ma limit 30 minut.
+MAX_COOLDOWNS = 3
+# Przerwa przed druga runda dla zapytan, ktore padly w pierwszej.
+RETRY_PASS_DELAY = 60
+
+
+class ServerUnavailable(RuntimeError):
+    """Serwer nie wrocil mimo kolejnych przerw - konczymy z tym, co jest."""
+
+
+class _Pass:
+    """Jedna runda po liscie zapytan z bezpiecznikiem na serie bledow."""
+
+    def __init__(self, client: EldoradoClient, writer: SnapshotWriter, stats: RunStats, verbose: bool) -> None:
+        self.client = client
+        self.writer = writer
+        self.stats = stats
+        self.verbose = verbose
+        self.streak = 0
+        self.cooldowns = 0
+
+    def query(self, label: str, query: Query) -> str | None:
+        """Wykonuje zapytanie. Zwraca opis bledu albo None przy sukcesie."""
+        try:
+            payload = self.client.search_jobs(**query.arguments)
+        except Exception as exc:  # noqa: BLE001 - jedna zla komorka nie psuje przebiegu
+            if self.verbose:
+                print(f"  {label} BLAD {query.label}: {exc}", file=sys.stderr)
+            self.streak += 1
+            if self.streak >= FAILURE_STREAK:
+                self._cool_down()
+            return f"{query.kind}/{query.label}/{query.seniority}: {exc}"
+
+        self.streak = 0
+        self.writer.write_measurement(query, payload)
+        seen, _ = self.writer.write_jobs(payload.get("jobs", []))
+        self.stats.queries_ok += 1
+        self.stats.jobs_seen += seen
+        if self.verbose:
+            total = payload.get("total_results", 0)
+            print(f"  {label} {query.label:<18} {query.seniority or '-':<8} {total:>6}")
+        return None
+
+    def _cool_down(self) -> None:
+        if self.cooldowns >= MAX_COOLDOWNS:
+            raise ServerUnavailable(
+                f"{self.streak} bledow pod rzad mimo {MAX_COOLDOWNS} przerw po {COOLDOWN_SECONDS} s"
+            )
+        self.cooldowns += 1
+        if self.verbose:
+            print(
+                f"  -- {self.streak} bledow pod rzad: przerwa {COOLDOWN_SECONDS} s "
+                f"({self.cooldowns}/{MAX_COOLDOWNS}) i nowa sesja --",
+                file=sys.stderr,
+            )
+        time.sleep(COOLDOWN_SECONDS)
+        self.streak = 0
+        try:
+            self.client.connect()
+        except Exception as exc:  # noqa: BLE001 - nowa sesja to proba, nie warunek
+            if self.verbose:
+                print(f"  -- nowa sesja nie wstala: {exc}", file=sys.stderr)
+
+
 def run(
     matrix: list[Query],
     *,
@@ -104,9 +201,21 @@ def run(
     interval: float = 1.2,
     verbose: bool = True,
 ) -> RunStats:
+    """Przebieg zbierania odporny na przejsciowe awarie serwera.
+
+    1. Pierwsza runda po calej macierzy. Seria bledow pod rzad uruchamia
+       przerwe i nowa sesje, zamiast odpytywac martwy serwer dalej.
+    2. Druga runda tylko dla zapytan, ktore padly - po minucie przerwy.
+       Przejsciowa awaria w polowie przebiegu nie kosztuje wtedy polowy danych.
+    3. Jesli serwer nie wraca mimo przerw, konczymy z tym, co juz jest
+       zapisane. Kazda zebrana komorka jest nieodtwarzalna, wiec niczego
+       nie wyrzucamy tylko dlatego, ze reszta sie nie udala.
+    """
     stats = RunStats()
     writer = SnapshotWriter(data_dir, date.today())
     started = datetime.now(timezone.utc)
+    failed: list[tuple[Query, str]] = []
+    aborted: str | None = None
 
     try:
         with EldoradoClient(min_interval=interval) as client:
@@ -114,26 +223,39 @@ def run(
                 name = client.server_info.get("name", "?")
                 print(f"Polaczono z MCP: {name} | zapytan do wykonania: {len(matrix)}")
 
-            for index, query in enumerate(matrix, start=1):
-                try:
-                    payload = client.search_jobs(**query.arguments)
-                except Exception as exc:  # noqa: BLE001 - jedna zla komorka nie psuje przebiegu
-                    stats.queries_failed += 1
-                    stats.failures.append(f"{query.kind}/{query.label}/{query.seniority}: {exc}")
-                    if verbose:
-                        print(f"  [{index}/{len(matrix)}] BLAD {query.label}: {exc}", file=sys.stderr)
-                    continue
+            first = _Pass(client, writer, stats, verbose)
+            position = 0
+            try:
+                for position, query in enumerate(matrix):
+                    if error := first.query(f"[{position + 1}/{len(matrix)}]", query):
+                        failed.append((query, error))
+            except ServerUnavailable as exc:
+                aborted = str(exc)
+                # Zapytanie, na ktorym bezpiecznik zadzialal, i wszystkie dalsze
+                # tez sa nieudane - licza sie do bledow, zeby manifest nie udawal
+                # pelnego przebiegu.
+                failed.extend((q, "pominiete: serwer niedostepny") for q in matrix[position:])
 
-                writer.write_measurement(query, payload)
-                seen, _ = writer.write_jobs(payload.get("jobs", []))
-                stats.queries_ok += 1
-                stats.jobs_seen += seen
-
+            if failed and not aborted:
                 if verbose:
-                    total = payload.get("total_results", 0)
-                    level = query.seniority or "-"
-                    print(f"  [{index}/{len(matrix)}] {query.label:<18} {level:<8} {total:>6}")
+                    print(f"\nDruga runda: {len(failed)} zapytan po {RETRY_PASS_DELAY} s przerwy")
+                time.sleep(RETRY_PASS_DELAY)
+                second = _Pass(client, writer, stats, verbose)
+                still_failed: list[tuple[Query, str]] = []
+                position = 0
+                try:
+                    for position, (query, _) in enumerate(failed):
+                        if error := second.query(f"[druga {position + 1}/{len(failed)}]", query):
+                            still_failed.append((query, error))
+                except ServerUnavailable as exc:
+                    aborted = str(exc)
+                    still_failed.extend(failed[position:])
+                failed = still_failed
     finally:
+        stats.queries_failed = len(failed)
+        stats.failures = [error for _, error in failed]
+        if aborted:
+            stats.failures.insert(0, f"przerwano: {aborted}")
         stats.unique_jobs = writer.unique_jobs
         writer.write_manifest(
             {

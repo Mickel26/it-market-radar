@@ -23,6 +23,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
+from .queries import CONTRACT_TYPES, WORK_MODES
 from .queries import SENIORITIES as SENIORITY_LEVELS
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -88,13 +89,32 @@ def market_structure(snapshot: Snapshot) -> dict[str, Any]:
     }
 
 
-def breakdown(snapshot: Snapshot, kind: str) -> dict[str, dict[str, int]]:
-    """Rozklad work_mode albo contract w przekroju poziomow."""
+def measured_levels(snapshot: Snapshot) -> set[str]:
+    """Poziomy, ktore ten snapshot w ogole zamierzal zmierzyc.
+
+    Pelny przebieg mierzy wszystkie cztery; zawezony (--seniorities junior,mid)
+    tylko wybrane. Kompletnosc wiersza oceniamy wzgledem tego zamiaru, a nie
+    sztywnej listy - inaczej zawezony przebieg nie mialby zadnego wiersza.
+    """
+    levels = {m["seniority"] for m in snapshot.measurements if m["kind"] == "seniority" and m["seniority"]}
+    if not levels:
+        levels = {m["seniority"] for m in snapshot.measurements if m.get("seniority")}
+    return levels
+
+
+def breakdown(snapshot: Snapshot, kind: str, labels: Iterable[str]) -> dict[str, dict[str, int]]:
+    """Rozklad work_mode albo contract w przekroju poziomow.
+
+    Poziom wchodzi tylko z kompletem etykiet. Gdyby przebieg zgubil np. "office"
+    dla juniora, udzialy pozostalych trybow wyszlyby zawyzone - to gorsze niz
+    brak tego poziomu na wykresie.
+    """
+    expected = set(labels)
     result: dict[str, dict[str, int]] = defaultdict(dict)
     for m in snapshot.measurements:
         if m["kind"] == kind and m["seniority"]:
             result[m["seniority"]][m["label"]] = m["total_results"]
-    return dict(result)
+    return {level: values for level, values in result.items() if expected <= set(values)}
 
 
 def tech_demand(snapshot: Snapshot) -> list[dict[str, Any]]:
@@ -112,9 +132,17 @@ def tech_demand(snapshot: Snapshot) -> list[dict[str, Any]]:
         row = rows.setdefault(key, {"technology": m["label"], "group": m["group"], "levels": {}})
         row["levels"][m["seniority"]] = m["total_results"]
 
+    # Technologia zmierzona tylko dla czesci poziomow (przebieg padl w polowie
+    # jej wierszy) dalaby zaklamany junior_ratio: zanizony mianownik, a przy
+    # samym "intern" nawet 100%. Taki wiersz pomijamy - w trendzie zostaje
+    # luka, ktora mowi prawde, zamiast liczby, ktora jej nie mowi.
+    required = measured_levels(snapshot)
+
     output = []
     for row in rows.values():
         levels = row["levels"]
+        if not required <= set(levels):
+            continue
         total = sum(levels.values())
         entry_level = levels.get("junior", 0) + levels.get("intern", 0)
         output.append(
@@ -238,8 +266,8 @@ def build_report(snapshot: Snapshot, anchors: list[str] | None = None) -> dict[s
             "jobs_in_corpus": len(snapshot.jobs),
         },
         "market": market_structure(snapshot),
-        "work_modes": breakdown(snapshot, "work_mode"),
-        "contracts": breakdown(snapshot, "contract"),
+        "work_modes": breakdown(snapshot, "work_mode", WORK_MODES),
+        "contracts": breakdown(snapshot, "contract", CONTRACT_TYPES),
         "tech_demand": demand,
         "most_junior_friendly": sorted(
             [r for r in demand if r["entry_level_offers"] >= 5],
@@ -390,6 +418,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     snapshot = Snapshot.latest()
+    if not snapshot.measurements:
+        # Przebieg, ktory nie zebral ani jednego pomiaru, i tak zaklada katalog
+        # dnia. Raport z niego mialby same braki, a trafilby do szeregu
+        # czasowego jako "pomiar" - lepiej nie wypuscic go wcale.
+        print(f"Snapshot {snapshot.day} nie ma ani jednego pomiaru - nie licze z niego raportu.")
+        return 1
     report = build_report(snapshot, anchors=[a.strip() for a in args.anchors.split(",") if a.strip()])
 
     out_path = DATA_DIR / "reports" / f"{snapshot.day.isoformat()}.json"
