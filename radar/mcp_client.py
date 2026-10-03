@@ -69,7 +69,9 @@ class EldoradoClient:
         *,
         min_interval: float = 1.0,
         max_retries: int = 4,
-        timeout: float = 45.0,
+        # Zwykla odpowiedz przychodzi w ~1 s. 45 s pomnozone przez ponawianie
+        # dawalo 3 minuty na jedno zapytanie przy serwerze, ktory wisi.
+        timeout: float = 20.0,
     ) -> None:
         self.endpoint = endpoint
         self.min_interval = min_interval

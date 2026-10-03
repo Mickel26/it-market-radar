@@ -26,7 +26,7 @@ permissions:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     steps:
       - uses: actions/checkout@v7
@@ -40,10 +40,14 @@ jobs:
       # nieodtwarzalna. 28.09 kod wyjscia 1 z tego kroku pominal analize
       # i commit, wiec przepadly tez 103 poprawne pomiary. Teraz porazka
       # zbierania nie blokuje zapisu - zglaszamy ja na samym koncu.
+      # Dwie warstwy limitu czasu. collect sam konczy po 20 minutach z tym, co
+      # ma. Gdyby to zawiodlo, GitHub utnie sam ten krok po 24 minutach - a nie
+      # caly job po 30, jak 03.10, kiedy przepadlaby analiza i commit.
       - name: Zbierz snapshot
         id: collect
         continue-on-error: true
-        run: python -m radar.collect
+        timeout-minutes: 24
+        run: python -m radar.collect --budget-minutes 20
 
       - name: Policz raport
         id: analyze

@@ -46,7 +46,9 @@ class Snapshot:
             day=date.fromisoformat(directory.name),
             measurements=_read_jsonl(directory / "measurements.jsonl"),
             jobs=_read_jsonl(directory / "jobs.jsonl"),
-            manifest=json.loads((directory / "manifest.json").read_text(encoding="utf-8")),
+            # Brak manifestu (przebieg zabity, zanim go zapisal) nie moze
+            # zablokowac analizy pomiarow, ktore juz leza na dysku.
+            manifest=_read_manifest(directory / "manifest.json"),
         )
 
     @classmethod
@@ -55,6 +57,13 @@ class Snapshot:
         if not snapshots:
             raise FileNotFoundError("Brak snapshotow - uruchom najpierw: python -m radar.collect")
         return cls.load(snapshots[-1])
+
+
+def _read_manifest(path: Path) -> dict[str, Any]:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:

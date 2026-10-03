@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import signal
 import sys
 import time
 from dataclasses import dataclass, field
@@ -133,6 +134,14 @@ COOLDOWN_SECONDS = 90
 MAX_COOLDOWNS = 3
 # Przerwa przed druga runda dla zapytan, ktore padly w pierwszej.
 RETRY_PASS_DELAY = 60
+# Twardy limit czasu calego zbierania. Bezpiecznik liczy zapytania, a serwer,
+# ktory wisi zamiast odpowiadac bledem, zjada minuty na jedno zapytanie - bez
+# tego limitu GitHub zabija job po 30 min i nie zdazy sie analiza ani commit.
+DEFAULT_BUDGET_MINUTES = 20.0
+
+
+class OutOfTime(RuntimeError):
+    """Skonczyl sie budzet czasu - konczymy z tym, co jest."""
 
 
 class ServerUnavailable(RuntimeError):
@@ -142,7 +151,15 @@ class ServerUnavailable(RuntimeError):
 class _Pass:
     """Jedna runda po liscie zapytan z bezpiecznikiem na serie bledow."""
 
-    def __init__(self, client: EldoradoClient, writer: SnapshotWriter, stats: RunStats, verbose: bool) -> None:
+    def __init__(
+        self,
+        client: EldoradoClient,
+        writer: SnapshotWriter,
+        stats: RunStats,
+        verbose: bool,
+        deadline: float,
+    ) -> None:
+        self.deadline = deadline
         self.client = client
         self.writer = writer
         self.stats = stats
@@ -152,6 +169,8 @@ class _Pass:
 
     def query(self, label: str, query: Query) -> str | None:
         """Wykonuje zapytanie. Zwraca opis bledu albo None przy sukcesie."""
+        if time.monotonic() >= self.deadline:
+            raise OutOfTime("skonczyl sie budzet czasu")
         try:
             payload = self.client.search_jobs(**query.arguments)
         except Exception as exc:  # noqa: BLE001 - jedna zla komorka nie psuje przebiegu
@@ -173,6 +192,8 @@ class _Pass:
         return None
 
     def _cool_down(self) -> None:
+        if time.monotonic() + COOLDOWN_SECONDS >= self.deadline:
+            raise OutOfTime("przerwa ochronna nie zmiescilaby sie w budzecie czasu")
         if self.cooldowns >= MAX_COOLDOWNS:
             raise ServerUnavailable(
                 f"{self.streak} bledow pod rzad mimo {MAX_COOLDOWNS} przerw po {COOLDOWN_SECONDS} s"
@@ -200,6 +221,7 @@ def run(
     window: str = DEFAULT_WINDOW,
     interval: float = 1.2,
     verbose: bool = True,
+    budget_minutes: float = DEFAULT_BUDGET_MINUTES,
 ) -> RunStats:
     """Przebieg zbierania odporny na przejsciowe awarie serwera.
 
@@ -207,8 +229,8 @@ def run(
        przerwe i nowa sesje, zamiast odpytywac martwy serwer dalej.
     2. Druga runda tylko dla zapytan, ktore padly - po minucie przerwy.
        Przejsciowa awaria w polowie przebiegu nie kosztuje wtedy polowy danych.
-    3. Jesli serwer nie wraca mimo przerw, konczymy z tym, co juz jest
-       zapisane. Kazda zebrana komorka jest nieodtwarzalna, wiec niczego
+    3. Jesli serwer nie wraca mimo przerw albo skonczy sie budzet czasu,
+       konczymy z tym, co juz jest zapisane. Kazda zebrana komorka jest nieodtwarzalna, wiec niczego
        nie wyrzucamy tylko dlatego, ze reszta sie nie udala.
     """
     stats = RunStats()
@@ -216,6 +238,7 @@ def run(
     started = datetime.now(timezone.utc)
     failed: list[tuple[Query, str]] = []
     aborted: str | None = None
+    deadline = time.monotonic() + budget_minutes * 60
 
     try:
         with EldoradoClient(min_interval=interval) as client:
@@ -223,31 +246,32 @@ def run(
                 name = client.server_info.get("name", "?")
                 print(f"Polaczono z MCP: {name} | zapytan do wykonania: {len(matrix)}")
 
-            first = _Pass(client, writer, stats, verbose)
+            first = _Pass(client, writer, stats, verbose, deadline)
             position = 0
             try:
                 for position, query in enumerate(matrix):
                     if error := first.query(f"[{position + 1}/{len(matrix)}]", query):
                         failed.append((query, error))
-            except ServerUnavailable as exc:
+            except (ServerUnavailable, OutOfTime) as exc:
                 aborted = str(exc)
                 # Zapytanie, na ktorym bezpiecznik zadzialal, i wszystkie dalsze
                 # tez sa nieudane - licza sie do bledow, zeby manifest nie udawal
                 # pelnego przebiegu.
-                failed.extend((q, "pominiete: serwer niedostepny") for q in matrix[position:])
+                failed.extend((q, f"pominiete: {exc}") for q in matrix[position:])
 
-            if failed and not aborted:
+            enough_time = time.monotonic() + RETRY_PASS_DELAY < deadline
+            if failed and not aborted and enough_time:
                 if verbose:
                     print(f"\nDruga runda: {len(failed)} zapytan po {RETRY_PASS_DELAY} s przerwy")
                 time.sleep(RETRY_PASS_DELAY)
-                second = _Pass(client, writer, stats, verbose)
+                second = _Pass(client, writer, stats, verbose, deadline)
                 still_failed: list[tuple[Query, str]] = []
                 position = 0
                 try:
                     for position, (query, _) in enumerate(failed):
                         if error := second.query(f"[druga {position + 1}/{len(failed)}]", query):
                             still_failed.append((query, error))
-                except ServerUnavailable as exc:
+                except (ServerUnavailable, OutOfTime) as exc:
                     aborted = str(exc)
                     still_failed.extend(failed[position:])
                 failed = still_failed
@@ -280,6 +304,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--seniorities", default=",".join(SENIORITIES))
     parser.add_argument("--groups", default="", help="ogranicz do grup technologii, np. frontend,backend")
     parser.add_argument("--interval", type=float, default=1.2, help="min. odstep miedzy zapytaniami [s]")
+    parser.add_argument(
+        "--budget-minutes",
+        type=float,
+        default=DEFAULT_BUDGET_MINUTES,
+        help="twardy limit czasu zbierania; po nim koniec z tym, co juz jest",
+    )
     parser.add_argument("--dry-run", action="store_true", help="tylko pokaz, co byloby odpytane")
     args = parser.parse_args(argv)
 
@@ -300,7 +330,12 @@ def main(argv: list[str] | None = None) -> int:
         print("  ...")
         return 0
 
-    stats = run(matrix, window=args.window, interval=args.interval)
+    # GitHub konczy przekroczony krok sygnalem, nie wyjatkiem. Zamieniamy go
+    # na normalne wyjscie, zeby zadzialal blok finally w run() i manifest
+    # zdazyl sie zapisac - bez manifestu analiza nie ruszy tego snapshotu.
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
+
+    stats = run(matrix, window=args.window, interval=args.interval, budget_minutes=args.budget_minutes)
     print(
         f"\nGotowe: {stats.queries_ok} ok, {stats.queries_failed} bledow, "
         f"{stats.unique_jobs} unikalnych ofert."
