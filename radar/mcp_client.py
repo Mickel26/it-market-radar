@@ -27,6 +27,25 @@ class ToolError(RuntimeError):
     """JSON-RPC przeszedl, ale narzedzie zwrocilo blad albo nie-JSON."""
 
 
+class RateLimited(ToolError):
+    """Serwer odmowil, bo przekroczylismy jego limit zapytan.
+
+    To nie jest awaria do ponawiania: kazda kolejna proba tez liczy sie do
+    limitu dziennego. To sygnal, zeby zwolnic - decyzja nalezy do wolajacego.
+    """
+
+
+# Od pazdziernika 2026 serwer ma limit: 100 wyszukiwan pod rzad, potem jedno
+# na minute, 500 dziennie. Rozpoznajemy go po tresci, bo przychodzi jako zwykly
+# blad narzedzia (isError), a nie jako HTTP 429.
+_RATE_LIMIT_MARKERS = ("search limit", "rate limit", "try again in", "too many")
+
+
+def _is_rate_limit(text: str) -> bool:
+    lowered = (text or "").lower()
+    return any(marker in lowered for marker in _RATE_LIMIT_MARKERS)
+
+
 def _excerpt(text: str, limit: int = 160) -> str:
     """Poczatek odpowiedzi serwera do logu - dosc, zeby zobaczyc przyczyne."""
     flat = " ".join((text or "").split())
@@ -79,6 +98,9 @@ class EldoradoClient:
         self.timeout = timeout
         self._session_id: str | None = None
         self._next_id = 0
+        # Ile razy faktycznie wywolalismy wyszukiwanie - kazde, takze odrzucone,
+        # liczy sie do dziennego limitu serwera.
+        self.search_calls = 0
         self._last_call_at = 0.0
         self.server_info: dict[str, Any] = {}
 
@@ -215,6 +237,7 @@ class EldoradoClient:
         # walil w serwer co 1,2 s przez reszte przebiegu i stracil polowe pomiarow.
         last_error: Exception | None = None
         for attempt in range(self.max_retries):
+            self.search_calls += 1
             result = self._rpc("tools/call", {"name": "search_jobs", "arguments": arguments})
             text = next(
                 (block.get("text", "") for block in result.get("content", []) if block.get("type") == "text"),
@@ -224,6 +247,10 @@ class EldoradoClient:
                 return {"jobs": [], "shown_results": 0, "total_results": 0}
 
             if result.get("isError"):
+                if _is_rate_limit(text):
+                    # Bez ponawiania tutaj: kolejna proba za sekunde tez zostanie
+                    # odrzucona i zje kolejne miejsce z limitu dziennego.
+                    raise RateLimited(_excerpt(text))
                 last_error = ToolError(_excerpt(text))
             else:
                 try:

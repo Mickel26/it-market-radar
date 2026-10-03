@@ -14,7 +14,7 @@ Bez zależności — potrzebny tylko Python 3.11+.
 
 ```bash
 python -m radar.collect --dry-run          # pokaż, co zostanie odpytane
-python -m radar.collect                    # pełny przebieg (~4 min)
+python -m radar.collect                    # pełny przebieg (~100 min, patrz: Limit serwera)
 python -m radar.analyze                    # raport w konsoli + data/reports/<data>.json
 ```
 
@@ -182,18 +182,32 @@ Do repo idą wyłącznie liczby zagregowane — commitowane z białej listy ści
 nie przez `git add -A`. Gdyby korpus mimo to trafił do indeksu, przebieg przerywa
 się błędem zamiast go opublikować.
 
-Serwer w becie potrafi zniknąć w połowie przebiegu (tak było 28.09 — połowa
-zapytań poszła w próżnię, a cały tydzień przepadł). Dlatego:
+### Limit serwera
 
-- błąd zgłoszony przez narzędzie serwera jest ponawiany z backoffem jak każdy inny,
-- po 5 błędach pod rząd zbieranie robi 90 s przerwy i zakłada nową sesję,
-  zamiast dalej odpytywać martwy serwer — maksymalnie 3 razy,
-- zapytania, które padły, dostają drugą rundę po minucie,
-- niepełny przebieg i tak jest analizowany i commitowany; technologie
-  zmierzone tylko na części poziomów są pomijane, a nie pokazywane z zaniżonymi
-  liczbami,
-- przebieg niepełny kończy się na czerwono, więc GitHub wysyła maila,
-- dashboard sam ostrzega, gdy dane są starsze niż 9 dni albo pomiar był niepełny.
+Od końca września serwer ma limit, który sam komunikuje: **100 wyszukiwań pod
+rząd, potem jedno na minutę, 500 dziennie** — i prosi, żeby powiedzieć o nim
+użytkownikowi. Macierz ma 189 zapytań, więc przebieg z 28.09 i ręczny z 03.10
+padły dokładnie po setce. Pierwsze przebiegi (20 i 21.09) przeszły, bo limitu
+jeszcze nie było.
+
+Zbieranie limit szanuje, zamiast z nim walczyć:
+
+- pierwsze 95 wyszukiwań normalnym tempem, potem jedno na 61 s — pełny
+  przebieg trwa przez to ~100 minut i w zwykłym tygodniu **ani razu** nie
+  dostaje odmowy,
+- odmowa z powodu limitu nie jest ponawiana od razu (każda próba zjada limit
+  dzienny), tylko czeka na kolejne okno,
+- przebieg kończy się przed 480 wyszukiwaniami albo gdy serwer odmawia mimo
+  minutowych przerw — wtedy dzienny limit jest już wyczerpany i dalsze
+  czekanie nic nie da,
+- żadnych nowych sesji, żeby limit obejść.
+
+Do tego obrona przed prawdziwymi awariami: po 5 błędach pod rząd 90 s
+przerwy, druga runda dla nieudanych zapytań, budżet czasu 110 minut, a
+niepełny przebieg i tak jest analizowany i commitowany. Technologie zmierzone
+tylko na części poziomów są pomijane, a nie pokazywane z zaniżonymi liczbami.
+Niepełny przebieg kończy się na czerwono, więc GitHub wysyła maila, a dashboard
+sam ostrzega, gdy dane są starsze niż 9 dni albo pomiar był niepełny.
 
 Manifest dnia trzyma historię wszystkich przebiegów (`runs`), więc kolejny
 przebieg tego samego dnia niczego nie nadpisuje.

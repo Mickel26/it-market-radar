@@ -24,7 +24,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-from .mcp_client import EldoradoClient
+from .mcp_client import EldoradoClient, RateLimited
 from .queries import DEFAULT_WINDOW, SENIORITIES, TECHNOLOGIES, Query, build_matrix
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -43,6 +43,8 @@ class RunStats:
     queries_failed: int = 0
     jobs_seen: int = 0
     unique_jobs: int = 0
+    rate_limited: int = 0
+    search_calls: int = 0
     failures: list[str] = field(default_factory=list)
 
 
@@ -124,24 +126,41 @@ class SnapshotWriter:
         return len(self._seen_jobs)
 
 
+# --- limit serwera ---------------------------------------------------------
+# Od pazdziernika 2026 serwer pozwala na 100 wyszukiwan pod rzad, potem jedno
+# na minute i 500 dziennie - i prosi, zeby powiedziec o tym uzytkownikowi.
+# Macierz ma 189 zapytan, wiec pelny przebieg MUSI przejsc na wolne tempo.
+# Szanujemy limit, zamiast z nim walczyc: to darmowa beta, a operator jasno
+# napisal zasady.
+BURST_SEARCHES = 95          # zapas 5 pod limitem 100 "pod rzad"
+SLOW_INTERVAL = 61.0         # "jedno na minute", z sekunda zapasu
+RATE_LIMIT_WAITS = 3         # ile kolejnych minut czekamy na jedno zapytanie
+DAILY_SEARCH_CAP = 480       # zapas 20 pod limitem 500 dziennie
+# Ile zapytan pod rzad musi odpasc na limicie MIMO minutowych przerw, zebysmy
+# uznali, ze to limit dzienny (np. inny przebieg tego dnia go zuzyl).
+# Dalsze czekanie nic by nie dalo - serwer odmowi do polnocy.
+DAILY_LIMIT_STREAK = 3
+
+# --- prawdziwe awarie (nie limit) -------------------------------------------
 # Ile nieudanych zapytan pod rzad uznajemy za awarie serwera, a nie pech.
 FAILURE_STREAK = 5
-# Przerwa po takiej serii. 28.09 serwer wrocil po kilku minutach - dalsze
-# odpytywanie co 1,2 s tylko go dobijalo i palilo kolejne komorki macierzy.
+# Przerwa po takiej serii, zeby nie odpytywac martwego serwera co sekunde.
 COOLDOWN_SECONDS = 90
 # Ile takich przerw w jednym przebiegu, zanim uznamy, ze dzis sie nie da.
-# Ogranicza tez czas: workflow ma limit 30 minut.
 MAX_COOLDOWNS = 3
 # Przerwa przed druga runda dla zapytan, ktore padly w pierwszej.
 RETRY_PASS_DELAY = 60
-# Twardy limit czasu calego zbierania. Bezpiecznik liczy zapytania, a serwer,
-# ktory wisi zamiast odpowiadac bledem, zjada minuty na jedno zapytanie - bez
-# tego limitu GitHub zabija job po 30 min i nie zdazy sie analiza ani commit.
-DEFAULT_BUDGET_MINUTES = 20.0
+# Twardy limit czasu calego zbierania. Przy wolnym tempie pelny przebieg trwa
+# ~100 minut; budzet konczy go z tym, co jest, zanim GitHub zabije job.
+DEFAULT_BUDGET_MINUTES = 110.0
 
 
 class OutOfTime(RuntimeError):
     """Skonczyl sie budzet czasu - konczymy z tym, co jest."""
+
+
+class OutOfQuota(RuntimeError):
+    """Doszlismy do dziennego limitu serwera - dalsze zapytania i tak by odpadly."""
 
 
 class ServerUnavailable(RuntimeError):
@@ -149,7 +168,7 @@ class ServerUnavailable(RuntimeError):
 
 
 class _Pass:
-    """Jedna runda po liscie zapytan z bezpiecznikiem na serie bledow."""
+    """Jedna runda po liscie zapytan: tempo zgodne z limitem i bezpiecznik."""
 
     def __init__(
         self,
@@ -166,22 +185,57 @@ class _Pass:
         self.verbose = verbose
         self.streak = 0
         self.cooldowns = 0
+        self.limit_streak = 0
+
+    def _slow_down(self, reason: str) -> None:
+        if self.client.min_interval >= SLOW_INTERVAL:
+            return
+        self.client.min_interval = SLOW_INTERVAL
+        if self.verbose:
+            print(f"  -- {reason}: dalej jedno zapytanie co {SLOW_INTERVAL:.0f} s --", file=sys.stderr)
+
+    def _check_limits(self) -> None:
+        if self.client.search_calls >= DAILY_SEARCH_CAP:
+            raise OutOfQuota(f"{self.client.search_calls} wyszukiwan - blisko dziennego limitu serwera (500)")
+        if time.monotonic() + self.client.min_interval >= self.deadline:
+            raise OutOfTime("skonczyl sie budzet czasu")
 
     def query(self, label: str, query: Query) -> str | None:
         """Wykonuje zapytanie. Zwraca opis bledu albo None przy sukcesie."""
-        if time.monotonic() >= self.deadline:
-            raise OutOfTime("skonczyl sie budzet czasu")
-        try:
-            payload = self.client.search_jobs(**query.arguments)
-        except Exception as exc:  # noqa: BLE001 - jedna zla komorka nie psuje przebiegu
-            if self.verbose:
-                print(f"  {label} BLAD {query.label}: {exc}", file=sys.stderr)
-            self.streak += 1
-            if self.streak >= FAILURE_STREAK:
-                self._cool_down()
-            return f"{query.kind}/{query.label}/{query.seniority}: {exc}"
+        if self.client.search_calls >= BURST_SEARCHES:
+            self._slow_down(f"{self.client.search_calls} wyszukiwan pod rzad")
+
+        for wait in range(RATE_LIMIT_WAITS + 1):
+            self._check_limits()
+            try:
+                payload = self.client.search_jobs(**query.arguments)
+                break
+            except RateLimited as exc:
+                # Odmowa z powodu limitu to nie awaria: nie liczy sie do serii
+                # bledow. Zwalniamy i probujemy tego samego zapytania w kolejnym
+                # oknie - throttling klienta sam odczeka minute.
+                self.stats.rate_limited += 1
+                self._slow_down("serwer zglosil limit")
+                if wait == RATE_LIMIT_WAITS:
+                    if self.verbose:
+                        print(f"  {label} LIMIT {query.label}: {exc}", file=sys.stderr)
+                    self.limit_streak += 1
+                    if self.limit_streak >= DAILY_LIMIT_STREAK:
+                        raise OutOfQuota(
+                            f"{self.limit_streak} zapytania pod rzad odrzucone mimo minutowych przerw - "
+                            "najpewniej wyczerpany dzienny limit serwera"
+                        )
+                    return f"{query.kind}/{query.label}/{query.seniority}: limit serwera: {exc}"
+            except Exception as exc:  # noqa: BLE001 - jedna zla komorka nie psuje przebiegu
+                if self.verbose:
+                    print(f"  {label} BLAD {query.label}: {exc}", file=sys.stderr)
+                self.streak += 1
+                if self.streak >= FAILURE_STREAK:
+                    self._cool_down()
+                return f"{query.kind}/{query.label}/{query.seniority}: {exc}"
 
         self.streak = 0
+        self.limit_streak = 0
         self.writer.write_measurement(query, payload)
         seen, _ = self.writer.write_jobs(payload.get("jobs", []))
         self.stats.queries_ok += 1
@@ -202,16 +256,13 @@ class _Pass:
         if self.verbose:
             print(
                 f"  -- {self.streak} bledow pod rzad: przerwa {COOLDOWN_SECONDS} s "
-                f"({self.cooldowns}/{MAX_COOLDOWNS}) i nowa sesja --",
+                f"({self.cooldowns}/{MAX_COOLDOWNS}) --",
                 file=sys.stderr,
             )
+        # Bez zakladania nowej sesji: to wygladaloby jak obchodzenie limitu
+        # "na klienta". Sesje odtwarza tylko _rpc, gdy serwer o niej zapomni (404).
         time.sleep(COOLDOWN_SECONDS)
         self.streak = 0
-        try:
-            self.client.connect()
-        except Exception as exc:  # noqa: BLE001 - nowa sesja to proba, nie warunek
-            if self.verbose:
-                print(f"  -- nowa sesja nie wstala: {exc}", file=sys.stderr)
 
 
 def run(
@@ -242,39 +293,42 @@ def run(
 
     try:
         with EldoradoClient(min_interval=interval) as client:
-            if verbose:
-                name = client.server_info.get("name", "?")
-                print(f"Polaczono z MCP: {name} | zapytan do wykonania: {len(matrix)}")
-
-            first = _Pass(client, writer, stats, verbose, deadline)
-            position = 0
             try:
-                for position, query in enumerate(matrix):
-                    if error := first.query(f"[{position + 1}/{len(matrix)}]", query):
-                        failed.append((query, error))
-            except (ServerUnavailable, OutOfTime) as exc:
-                aborted = str(exc)
-                # Zapytanie, na ktorym bezpiecznik zadzialal, i wszystkie dalsze
-                # tez sa nieudane - licza sie do bledow, zeby manifest nie udawal
-                # pelnego przebiegu.
-                failed.extend((q, f"pominiete: {exc}") for q in matrix[position:])
-
-            enough_time = time.monotonic() + RETRY_PASS_DELAY < deadline
-            if failed and not aborted and enough_time:
                 if verbose:
-                    print(f"\nDruga runda: {len(failed)} zapytan po {RETRY_PASS_DELAY} s przerwy")
-                time.sleep(RETRY_PASS_DELAY)
-                second = _Pass(client, writer, stats, verbose, deadline)
-                still_failed: list[tuple[Query, str]] = []
+                    name = client.server_info.get("name", "?")
+                    print(f"Polaczono z MCP: {name} | zapytan do wykonania: {len(matrix)}")
+
+                first = _Pass(client, writer, stats, verbose, deadline)
                 position = 0
                 try:
-                    for position, (query, _) in enumerate(failed):
-                        if error := second.query(f"[druga {position + 1}/{len(failed)}]", query):
-                            still_failed.append((query, error))
-                except (ServerUnavailable, OutOfTime) as exc:
+                    for position, query in enumerate(matrix):
+                        if error := first.query(f"[{position + 1}/{len(matrix)}]", query):
+                            failed.append((query, error))
+                except (ServerUnavailable, OutOfTime, OutOfQuota) as exc:
                     aborted = str(exc)
-                    still_failed.extend(failed[position:])
-                failed = still_failed
+                    # Zapytanie, na ktorym bezpiecznik zadzialal, i wszystkie dalsze
+                    # tez sa nieudane - licza sie do bledow, zeby manifest nie udawal
+                    # pelnego przebiegu.
+                    failed.extend((q, f"pominiete: {exc}") for q in matrix[position:])
+
+                enough_time = time.monotonic() + RETRY_PASS_DELAY < deadline
+                if failed and not aborted and enough_time:
+                    if verbose:
+                        print(f"\nDruga runda: {len(failed)} zapytan po {RETRY_PASS_DELAY} s przerwy")
+                    time.sleep(RETRY_PASS_DELAY)
+                    second = _Pass(client, writer, stats, verbose, deadline)
+                    still_failed: list[tuple[Query, str]] = []
+                    position = 0
+                    try:
+                        for position, (query, _) in enumerate(failed):
+                            if error := second.query(f"[druga {position + 1}/{len(failed)}]", query):
+                                still_failed.append((query, error))
+                    except (ServerUnavailable, OutOfTime, OutOfQuota) as exc:
+                        aborted = str(exc)
+                        still_failed.extend(failed[position:])
+                    failed = still_failed
+            finally:
+                stats.search_calls = client.search_calls
     finally:
         stats.queries_failed = len(failed)
         stats.failures = [error for _, error in failed]
@@ -290,6 +344,10 @@ def run(
                 "queries_ok": stats.queries_ok,
                 "queries_failed": stats.queries_failed,
                 "unique_jobs": stats.unique_jobs,
+                # Ile razy serwer odmowil z powodu limitu i ile wyszukiwan
+                # poszlo w sumie - zeby bylo widac, jak blisko 500/dzien jestesmy.
+                "rate_limited": stats.rate_limited,
+                "search_calls": stats.search_calls,
                 "failures": stats.failures,
             }
         )
@@ -324,7 +382,12 @@ def main(argv: list[str] | None = None) -> int:
     matrix = build_matrix(window=args.window, seniorities=seniorities, technologies=technologies)
 
     if args.dry_run:
-        print(f"{len(matrix)} zapytan, szacowany czas: {len(matrix) * args.interval / 60:.1f} min")
+        fast = min(len(matrix), BURST_SEARCHES)
+        estimate = fast * args.interval + (len(matrix) - fast) * SLOW_INTERVAL
+        print(
+            f"{len(matrix)} zapytan, szacowany czas: {estimate / 60:.0f} min "
+            f"({fast} od razu, reszta co {SLOW_INTERVAL:.0f} s przez limit serwera)"
+        )
         for query in matrix[:10]:
             print(f"  {query.kind:<10} {query.label:<18} {query.seniority or '-'}")
         print("  ...")

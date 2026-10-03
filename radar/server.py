@@ -59,7 +59,7 @@ SESSION_START = tracker._now()
 
 
 class CollectJob:
-    """Zbieranie chodzi w tle, bo trwa ~4 minuty i blokowaloby przegladarke."""
+    """Zbieranie chodzi w tle, bo przez limit serwera trwa ~100 minut."""
 
     def __init__(self) -> None:
         self.lock = threading.Lock()

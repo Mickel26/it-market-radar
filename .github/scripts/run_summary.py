@@ -41,6 +41,10 @@ def main() -> int:
 
     print(f"- Zapytania: **{ok}** OK, **{failed}** błędów")
     print(f"- Unikalnych ofert w próbie: **{unique}**")
+    if (calls := manifest.get("search_calls")) is not None:
+        # Serwer: 100 wyszukiwan pod rzad, potem 1/min, 500 dziennie.
+        refused = manifest.get("rate_limited", 0)
+        print(f"- Wyszukiwań wysłanych: **{calls}** z dziennego limitu 500; odmów z powodu limitu: **{refused}**")
 
     # Korpus nie jest commitowany, wiec to jedyne miejsce, gdzie widac
     # jego rozmiar - a nagly spadek znaczy, ze cos sie zmienilo po stronie
