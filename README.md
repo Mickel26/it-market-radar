@@ -55,6 +55,7 @@ radar/
   analyze.py      metryki liczone offline z tego, co już na dysku
   profile.py      profil kandydata: CV, eksport LinkedIna, schemat
   match.py        dopasowywanie ofert do profilu — wyłącznie lokalnie
+  tracker.py      śledzenie aplikacji: statusy, notatki, co już widziałeś
   server.py       lokalny serwer interfejsu matchera (tylko 127.0.0.1)
   ui/             strony tego interfejsu — poza dashboardem publicznym
 data/
@@ -106,6 +107,27 @@ Serwer słucha **wyłącznie na pętli zwrotnej**. Związanie go z `0.0.0.0`
 wystawiłoby czyjeś CV i korpus ofert na całą sieć lokalną, więc tego nie robi
 i nie ma na to przełącznika. Strony z `radar/ui/` leżą poza tym, co publikuje
 dashboard, i bez tego serwera są martwe — same nie mają skąd wziąć danych.
+
+### Śledzenie aplikacji
+
+Przy każdym dopasowaniu: **Zapisz**, **Aplikowałem**, **Nie dla mnie**. Oferty,
+przy których coś zdecydowałeś, przestają wracać do listy — inaczej co tydzień
+przeglądałbyś te same ogłoszenia. Zapisane zostają, z odznaką, bo to lista do
+decyzji.
+
+Sekcja „Moje aplikacje" to lejek: zapisane → aplikowałem → rozmowa → oferta
+(albo odmowa), z notatką przy każdej ofercie i licznikiem „X dni od aplikacji".
+Po dwóch tygodniach bez odpowiedzi aplikacja jest oznaczona — czas się
+przypomnieć albo odpuścić. Na górze: liczba aplikacji, odsetek odpowiedzi,
+rozmowy.
+
+Oferta jest **nowa**, jeśli nie widziałeś jej w żadnej wcześniejszej sesji;
+przełącznik „tylko nowe" pokazuje wyłącznie takie.
+
+Wszystko w `profile/tracker.json`, lokalnie. Ogłoszenia znikają z agregatora po
+kilku tygodniach, więc przy każdej decyzji zapisywana jest kopia tytułu, firmy,
+linku i widełek. Zapis jest atomowy, a pliku, którego nie da się przeczytać,
+tracker nie nadpisuje — to może być jedyna kopia Twojej historii szukania.
 
 Jeśli wolisz konsolę, to samo bez interfejsu:
 

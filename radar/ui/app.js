@@ -12,6 +12,28 @@ const NF1 = new Intl.NumberFormat("pl-PL", { minimumFractionDigits: 1, maximumFr
 
 const SENIORITY_LABEL = { intern: "staż", junior: "junior", mid: "mid", senior: "senior" };
 
+const STATUS_LABEL = {
+  saved: "zapisana",
+  applied: "aplikowałem",
+  interview: "rozmowa",
+  offer: "oferta",
+  rejected: "odmowa",
+  dismissed: "nie dla mnie",
+};
+
+// Kolejnosc grup w lejku: najpierw to, co wymaga dzialania.
+const FUNNEL_GROUPS = [
+  ["interview", "Rozmowy"],
+  ["offer", "Oferty"],
+  ["applied", "Aplikowałem — czekam na odpowiedź"],
+  ["saved", "Zapisane — do decyzji"],
+  ["rejected", "Odmowy"],
+  ["dismissed", "Nie dla mnie"],
+];
+
+/** Po ilu dniach bez odpowiedzi warto sie przypomniec albo odpuscic. */
+const FOLLOW_UP_DAYS = 14;
+
 const state = {
   skills: [],
   learning: [],
@@ -128,6 +150,24 @@ function renderProfile() {
   $("salary").value = state.salary_min ?? "";
   $("exclude-skills").value = state.exclude_skills.join(", ");
   $("exclude-companies").value = state.exclude_companies.join(", ");
+}
+
+function renderProfileSummary() {
+  const levels = state.seniority.map((l) => SENIORITY_LABEL[l] || l).join(", ");
+  const parts = [
+    `${state.skills.length} ${plural(state.skills.length, "umiejętność", "umiejętności", "umiejętności")}`,
+    state.learning.length ? `${state.learning.length} w nauce` : null,
+    levels,
+    state.salary_min ? `od ${NF.format(state.salary_min)} zł` : null,
+  ].filter(Boolean);
+  $("profile-summary").textContent = `Profil: ${parts.join(" · ")}`;
+}
+
+/** Profil ustawia sie raz - potem zwiniety, zeby nie przewijac go co wizyte. */
+function collapseProfile(collapsed) {
+  $("profile-card").hidden = collapsed;
+  $("profile-summary-card").hidden = !collapsed;
+  if (collapsed) renderProfileSummary();
 }
 
 function collectProfile() {
@@ -310,9 +350,12 @@ function chip(text, kind) {
 }
 
 function renderMatches(data) {
-  $("result-meta").textContent =
-    `${NF.format(data.total)} ${plural(data.total, "dopasowanie", "dopasowania", "dopasowań")} ` +
-    `z ${NF.format(data.corpus)} ${plural(data.corpus, "oferty", "ofert", "ofert")} ze snapshotu ${data.day}.`;
+  const bits = [
+    `${NF.format(data.total)} ${plural(data.total, "dopasowanie", "dopasowania", "dopasowań")}`,
+    data.new ? `${NF.format(data.new)} ${plural(data.new, "nowe", "nowe", "nowych")}` : null,
+    data.hidden ? `${NF.format(data.hidden)} ukrytych, bo już coś przy nich zdecydowałeś` : null,
+  ].filter(Boolean);
+  $("result-meta").textContent = `${bits.join(" · ")} — korpus ${NF.format(data.corpus)} ofert ze snapshotu ${data.day}.`;
 
   const gapsBox = $("gaps-box");
   const gaps = $("gaps");
@@ -336,58 +379,95 @@ function renderMatches(data) {
       el(
         "p",
         "card-sub",
-        "Nic nie pasuje. Najczęstsze przyczyny: za mało umiejętności w profilu, za ostre filtry albo stary korpus."
+        $("only-new").checked
+          ? "Nie ma nowych dopasowań od poprzedniej sesji. Odznacz „tylko nowe”, żeby zobaczyć wszystkie."
+          : "Nic nie pasuje. Najczęstsze przyczyny: za mało umiejętności w profilu, za ostre filtry albo stary korpus."
       )
     );
     return;
   }
 
-  for (const item of data.matches) {
-    const card = el("article", "match");
-    const heading = el("h3");
-    heading.append(el("span", "score", String(Math.round(item.score))));
-    if (item.url) {
-      const link = el("a", null, item.title);
-      link.href = item.url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      heading.append(link);
+  for (const item of data.matches) box.append(matchCard(item));
+}
+
+function matchCard(item) {
+  const card = el("article", "match");
+  card.dataset.id = item.id;
+
+  const heading = el("h3");
+  heading.append(el("span", "score", String(Math.round(item.score))));
+  if (item.url) {
+    const link = el("a", null, item.title);
+    link.href = item.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    heading.append(link);
+  } else {
+    heading.append(document.createTextNode(item.title));
+  }
+  if (item.new) heading.append(el("span", "badge new", "nowa"));
+  if (item.status === "saved") heading.append(el("span", "badge saved", "zapisana"));
+  card.append(heading);
+
+  card.append(
+    el("p", "meta", `${item.company} · ${item.seniority} · ${item.salary} · pokrycie ${NF1.format(item.coverage)}%`)
+  );
+
+  const chips = el("p", "chips");
+  item.matched.forEach((s) => chips.append(chip(s, "have")));
+  item.partial.forEach((s) => chips.append(chip(s, "learn")));
+  item.missing.forEach((s) => chips.append(chip(s, "miss")));
+  card.append(chips);
+
+  const snapshot = {
+    title: item.title,
+    company: item.company,
+    url: item.url,
+    salary: item.salary,
+    seniority: item.seniority,
+  };
+  const actions = el("div", "actions");
+  const buttons =
+    item.status === "saved"
+      ? [["applied", "Aplikowałem", true], ["dismissed", "Nie dla mnie"], [null, "Odznacz"]]
+      : [["saved", "Zapisz"], ["applied", "Aplikowałem", true], ["dismissed", "Nie dla mnie"]];
+  for (const [status, label, primary] of buttons) {
+    const btn = el("button", primary ? "act primary" : "act", label);
+    btn.type = "button";
+    btn.addEventListener("click", () => decide(item, status, snapshot, card));
+    actions.append(btn);
+  }
+  card.append(actions);
+  return card;
+}
+
+async function decide(item, status, snapshot, card) {
+  try {
+    const result = await api("/api/tracker", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: item.id, status, offer: snapshot }),
+    });
+    renderFunnel(result);
+    if (status && status !== "saved") {
+      // Decyzja zapadla - oferta znika z dopasowan od razu, bez przeliczania listy.
+      card.remove();
     } else {
-      heading.append(document.createTextNode(item.title));
+      card.replaceWith(matchCard({ ...item, status, new: false }));
     }
-    card.append(heading);
-
-    card.append(
-      el(
-        "p",
-        "meta",
-        `${item.company} · ${item.seniority} · ${item.salary} · pokrycie ${NF1.format(item.coverage)}%`
-      )
-    );
-
-    const chips = el("p", "chips");
-    item.matched.forEach((s) => chips.append(chip(s, "have")));
-    item.partial.forEach((s) => chips.append(chip(s, "learn")));
-    item.missing.forEach((s) => chips.append(chip(s, "miss")));
-    card.append(chips);
-
-    box.append(card);
+  } catch (err) {
+    note($("run-note"), err.message, true);
   }
 }
 
-async function runMatch() {
+async function fetchMatches() {
   const button = $("run");
   button.disabled = true;
   note($("run-note"), "Liczę…", false);
   try {
-    // Zapisujemy najpierw, zeby wynik zgadzal sie z tym, co widac na ekranie -
-    // inaczej kliknięcie "pokaz" po edycji profilu liczyloby stara wersje.
-    if (!(await saveProfile())) {
-      note($("run-note"), "Popraw profil przed liczeniem.", true);
-      return;
-    }
     const min = Number($("min-score").value || 0);
-    const data = await api(`/api/matches?limit=60&min_score=${encodeURIComponent(min)}`);
+    const onlyNew = $("only-new").checked ? "1" : "0";
+    const data = await api(`/api/matches?limit=60&min_score=${encodeURIComponent(min)}&only_new=${onlyNew}`);
     renderMatches(data);
     note($("run-note"), "", false);
   } catch (err) {
@@ -395,6 +475,154 @@ async function runMatch() {
   } finally {
     button.disabled = false;
   }
+}
+
+async function runMatch() {
+  // Zapisujemy najpierw, zeby wynik zgadzal sie z tym, co widac na ekranie -
+  // inaczej klikniecie "pokaz" po edycji profilu liczyloby stara wersje.
+  if (!$("profile-card").hidden && !(await saveProfile())) {
+    note($("run-note"), "Popraw profil przed liczeniem.", true);
+    return;
+  }
+  await fetchMatches();
+}
+
+/* ---------------------------------------------------------------- lejek */
+
+function statTile(label, value, noteText) {
+  const tile = el("div", "tile");
+  tile.append(el("div", "t-label", label), el("div", "t-value", value));
+  if (noteText) tile.append(el("div", "t-note", noteText));
+  return tile;
+}
+
+function renderFunnel(data) {
+  const st = data.stats;
+  const stats = $("funnel-stats");
+  stats.replaceChildren(
+    statTile("Aplikacje", NF.format(st.applied)),
+    statTile(
+      "Odpowiedzi",
+      st.response_rate === null ? "—" : `${NF1.format(st.response_rate)}%`,
+      st.applied ? `${NF.format(st.responded)} z ${NF.format(st.applied)}` : "jeszcze nic nie wysłano"
+    ),
+    statTile("Rozmowy", NF.format(st.interviews)),
+    statTile(
+      "Bez odpowiedzi > 2 tyg.",
+      NF.format(st.stale),
+      st.stale ? "czas się przypomnieć albo odpuścić" : null
+    )
+  );
+
+  const box = $("funnel");
+  box.replaceChildren();
+  if (!data.offers.length) {
+    box.append(
+      el(
+        "p",
+        "card-sub",
+        "Pusto. Przy dopasowaniach kliknij „Zapisz” albo „Aplikowałem” — oferta trafi tutaj i przestanie wracać na listę."
+      )
+    );
+    return;
+  }
+
+  for (const [status, heading] of FUNNEL_GROUPS) {
+    const items = data.offers.filter((o) => o.status === status);
+    if (!items.length) continue;
+
+    // "Nie dla mnie" zwiniete: to archiwum, nie lista do dzialania.
+    const group = status === "dismissed" ? el("details", "funnel-group") : el("div", "funnel-group");
+    const title = el(status === "dismissed" ? "summary" : "h3", null, `${heading} (${items.length})`);
+    if (status === "dismissed") title.style.cssText = "cursor:pointer;font-size:13px;color:var(--text-muted)";
+    group.append(title);
+    for (const item of items) group.append(funnelItem(item));
+    box.append(group);
+  }
+}
+
+function funnelItem(item) {
+  const row = el("div", "app");
+
+  const main = el("div");
+  const heading = el("h4");
+  if (item.url) {
+    const link = el("a", null, item.title || "(oferta bez tytułu)");
+    link.href = item.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    heading.append(link);
+  } else {
+    heading.append(document.createTextNode(item.title || "(oferta bez tytułu)"));
+  }
+  main.append(heading);
+
+  const meta = el("p", "meta");
+  meta.append(document.createTextNode([item.company, item.salary].filter(Boolean).join(" · ")));
+  if (item.status === "applied" && item.days_since_applied !== null) {
+    const days = item.days_since_applied;
+    const late = days > FOLLOW_UP_DAYS;
+    meta.append(document.createTextNode(" · "));
+    meta.append(
+      el(
+        "span",
+        late ? "wait late" : "wait",
+        days === 0 ? "aplikacja dziś" : `${days} ${plural(days, "dzień", "dni", "dni")} od aplikacji${late ? " — przypomnij się" : ""}`
+      )
+    );
+  }
+  main.append(meta);
+  row.append(main);
+
+  const select = document.createElement("select");
+  select.setAttribute("aria-label", `status: ${item.title || "oferta"}`);
+  for (const [value, label] of Object.entries(STATUS_LABEL)) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    option.selected = value === item.status;
+    select.append(option);
+  }
+  const undo = document.createElement("option");
+  undo.value = "";
+  undo.textContent = "— usuń z listy —";
+  select.append(undo);
+  select.addEventListener("change", async () => {
+    try {
+      const result = await api("/api/tracker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id, status: select.value || null }),
+      });
+      renderFunnel(result);
+    } catch (err) {
+      select.value = item.status;
+      alert(err.message);
+    }
+  });
+  row.append(select);
+
+  const noteInput = document.createElement("input");
+  noteInput.type = "text";
+  noteInput.className = "note";
+  noteInput.placeholder = "notatka, np. rozmowa we wtorek 14:00, rekruterka Anna";
+  noteInput.value = item.note || "";
+  noteInput.setAttribute("aria-label", `notatka: ${item.title || "oferta"}`);
+  noteInput.addEventListener("change", async () => {
+    try {
+      await api("/api/tracker/note", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id, note: noteInput.value }),
+      });
+      noteInput.style.borderColor = "";
+    } catch (err) {
+      noteInput.style.borderColor = "#d03b3b";
+      noteInput.title = err.message;
+    }
+  });
+  row.append(noteInput);
+  return row;
 }
 
 /* ------------------------------------------------------------------ start */
@@ -454,7 +682,11 @@ async function main() {
 
     wireAdder("skill-input", "skill-add", state.skills, $("skills"), null);
     wireAdder("learning-input", "learning-add", state.learning, $("learning"), "learn");
-    $("save").addEventListener("click", saveProfile);
+    $("save").addEventListener("click", async () => {
+      if (await saveProfile()) collapseProfile(true);
+    });
+    $("profile-edit").addEventListener("click", () => collapseProfile(false));
+    $("only-new").addEventListener("change", fetchMatches);
     $("collect").addEventListener("click", startCollect);
     $("run").addEventListener("click", runMatch);
     $("cv-file").addEventListener("change", (e) => e.target.files[0] && extractFrom(e.target.files[0], "cv"));
@@ -462,6 +694,14 @@ async function main() {
 
     $("boot").remove();
     $("app").hidden = false;
+
+    renderFunnel(await api("/api/tracker"));
+
+    // Profil ustawiony i oferty na dysku - nie ma po co kazac klikac.
+    if (data.profile) {
+      collapseProfile(true);
+      if (data.corpus.exists) fetchMatches();
+    }
   } catch (err) {
     const boot = $("boot");
     boot.className = "error";

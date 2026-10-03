@@ -91,6 +91,41 @@
       .gaps span { font-size: 13px; color: var(--text-secondary); border: 1px solid var(--border); border-radius: 999px; padding: 3px 11px; }
       .gaps b { color: var(--text-primary); }
       datalist { display: none; }
+
+      /* profil zwiniety do jednej linii */
+      .profile-summary { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+      .profile-summary p { margin: 0; color: var(--text-secondary); font-size: 14px; }
+
+      /* tracker */
+      .badge {
+        display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.03em;
+        padding: 1px 7px; border-radius: 999px; margin-left: 8px; vertical-align: 2px;
+        text-transform: uppercase;
+      }
+      .badge.new { background: var(--accent-wash); color: var(--accent); }
+      .badge.saved { background: rgba(250, 178, 25, 0.18); color: var(--text-primary); }
+      .actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+      .act {
+        font: inherit; font-size: 12.5px; cursor: pointer; padding: 4px 11px;
+        border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary);
+      }
+      .act:hover { background: var(--wash); color: var(--text-primary); }
+      .act.primary { border-color: var(--accent); color: var(--accent); }
+      .act:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      .funnel-group { margin-top: 22px; }
+      .funnel-group:first-of-type { margin-top: 8px; }
+      .funnel-group > h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 0 0 6px; }
+      .app { border-top: 1px solid var(--gridline); padding: 12px 0; display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; align-items: start; }
+      .app:first-of-type { border-top: none; }
+      .app h4 { margin: 0; font-size: 14.5px; font-weight: 600; }
+      .app h4 a { color: inherit; }
+      .app .meta { margin: 2px 0 0; color: var(--text-muted); font-size: 13px; }
+      .app .wait { color: var(--text-secondary); }
+      .app .wait.late { color: var(--text-primary); font-weight: 600; }
+      .app input.note { width: 100%; font-size: 13px; padding: 5px 9px; margin-top: 8px; grid-column: 1 / -1; }
+      .app select { font-size: 13px; padding: 5px 8px; }
+      .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 8px; }
+      .toggle { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
     </style>
   </head>
   <body>
@@ -118,7 +153,14 @@
             <p>Czego umiesz i czego szukasz. Zapisuje się do <code>profile/profile.json</code>, który jest poza repo.</p>
           </div>
 
-          <div class="card">
+          <div class="card" id="profile-summary-card" hidden>
+            <div class="profile-summary">
+              <p id="profile-summary"></p>
+              <button class="btn ghost" type="button" id="profile-edit">Edytuj profil</button>
+            </div>
+          </div>
+
+          <div class="card" id="profile-card">
             <div class="field">
               <span class="field-label">Umiejętności</span>
               <p class="hint">To one decydują o dopasowaniu. Wpisz nazwę i naciśnij Enter.</p>
@@ -220,6 +262,7 @@
               <button class="btn" type="button" id="run">Pokaż dopasowania</button>
               <label for="min-score" style="font-size: 13px; color: var(--text-muted)">minimalny wynik</label>
               <input type="number" id="min-score" value="0" min="0" max="100" step="5" style="width: 80px" />
+              <label class="toggle"><input type="checkbox" id="only-new" /> tylko nowe</label>
               <span class="note" id="run-note"></span>
             </div>
             <p class="card-sub" id="result-meta" style="margin: 14px 0 0"></p>
@@ -229,6 +272,21 @@
               <div class="gaps" id="gaps"></div>
             </div>
             <div id="matches" style="margin-top: 8px"></div>
+          </div>
+        </section>
+
+        <!-- --------------------------------------------------- aplikacje -->
+        <section class="step">
+          <div class="sec-head">
+            <h2>Moje aplikacje</h2>
+            <p>
+              Oferty, przy których coś zdecydowałeś. Zaaplikowane i odrzucone nie wracają już do dopasowań. Ogłoszenie
+              może zniknąć z agregatora — tutaj zostaje jego kopia z chwili Twojej decyzji.
+            </p>
+          </div>
+          <div class="card">
+            <div class="stat-row" id="funnel-stats"></div>
+            <div id="funnel"></div>
           </div>
         </section>
       </main>

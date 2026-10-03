@@ -57,6 +57,15 @@ class Match:
     score: float     # 0-100
 
     @property
+    def id(self) -> str:
+        """Stabilny identyfikator oferty - z niego korzysta tracker.
+
+        collect nadaje go z URL-a (/praca/440489-slug -> "440489"), wiec ta sama
+        oferta ma ten sam id w kolejnych snapshotach.
+        """
+        return str(self.job.get("id") or self.url or self.title)
+
+    @property
     def title(self) -> str:
         for key in ("title", "position", "name"):
             if value := (self.job.get(key) or "").strip():

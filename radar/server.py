@@ -28,12 +28,13 @@ import json
 import threading
 import traceback
 import webbrowser
+from datetime import datetime, timezone
 from contextlib import redirect_stdout
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-from . import analyze, collect, match
+from . import analyze, collect, match, tracker
 from .profile import (
     DEFAULT_PROFILE,
     PROFILE_DIR,
@@ -50,6 +51,11 @@ UI_DIR = Path(__file__).resolve().parent / "ui"
 ASSETS_DIR = ROOT / "assets"
 
 MAX_UPLOAD = 25 * 1024 * 1024  # eksport z LinkedIna potrafi wazyc kilkanascie MB
+
+# Poczatek tej sesji matchera. Oferta jest "nowa", jesli pierwszy raz pokazano
+# ja w tej sesji albo nie pokazano jej nigdy - po zamknieciu i ponownym
+# otwarciu przestaje byc nowa. Ustawiane w main(), tu wartosc dla importu.
+SESSION_START = tracker._now()
 
 
 class CollectJob:
@@ -149,16 +155,43 @@ def load_profile_dict() -> dict[str, Any] | None:
         return None
 
 
-def build_matches(limit: int, min_score: float) -> dict[str, Any]:
+def build_matches(limit: int, min_score: float, only_new: bool = False) -> dict[str, Any]:
     profile = Profile.load(DEFAULT_PROFILE)
     snapshot = analyze.Snapshot.latest(analyze.DATA_DIR)
     found = match.find_matches(snapshot.jobs, profile, min_score=min_score)
+
+    state = tracker.load()
+    statuses = {offer_id: entry.get("status") for offer_id, entry in state["offers"].items()}
+    seen = state["seen"]
+
+    # Oferty, przy ktorych juz cos zdecydowales, nie wracaja co tydzien.
+    candidates = [m for m in found if statuses.get(m.id) not in tracker.HIDDEN_FROM_MATCHES]
+    hidden = len(found) - len(candidates)
+
+    def is_new(m: match.Match) -> bool:
+        first = seen.get(m.id)
+        return first is None or first >= SESSION_START
+
+    new_count = sum(1 for m in candidates if is_new(m))
+    if only_new:
+        candidates = [m for m in candidates if is_new(m)]
+
+    shown = candidates[:limit]
+    # Za "widziane" uznajemy tylko to, co faktycznie trafilo na ekran -
+    # oferta z 80. miejsca przy limicie 60 nie moze stracic znacznika "nowa".
+    tracker.mark_seen([m.id for m in shown])
+
     return {
         "corpus": len(snapshot.jobs),
         "day": snapshot.day.isoformat(),
-        "total": len(found),
+        "total": len(candidates),
+        "hidden": hidden,
+        "new": new_count,
         "matches": [
             {
+                "id": m.id,
+                "status": statuses.get(m.id),
+                "new": is_new(m),
                 "score": m.score,
                 "coverage": m.coverage,
                 "title": m.title,
@@ -170,10 +203,30 @@ def build_matches(limit: int, min_score: float) -> dict[str, Any]:
                 "partial": m.partial,
                 "missing": m.missing,
             }
-            for m in found[:limit]
+            for m in shown
         ],
         "gaps": [{"skill": s, "count": c} for s, c in match.gap_ranking(found)[:12]],
     }
+
+
+def tracker_state() -> dict[str, Any]:
+    state = tracker.load()
+    today = datetime.now(timezone.utc).date()
+    offers = []
+    for offer_id, entry in state["offers"].items():
+        applied_at = tracker.first_applied(entry)
+        offers.append(
+            {
+                "id": offer_id,
+                **{k: entry.get(k) for k in ("status", "title", "company", "url", "salary", "seniority", "note")},
+                "updated": (entry.get("history") or [{}])[-1].get("at"),
+                "days_since_applied": (
+                    (today - datetime.fromisoformat(applied_at).date()).days if applied_at else None
+                ),
+            }
+        )
+    offers.sort(key=lambda o: o.get("updated") or "", reverse=True)
+    return {"offers": offers, "stats": tracker.stats(state)}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -241,8 +294,14 @@ class Handler(BaseHTTPRequestHandler):
                     pair.split("=", 1) for pair in self.path.partition("?")[2].split("&") if "=" in pair
                 )
                 return self._json(
-                    build_matches(int(params.get("limit", 40)), float(params.get("min_score", 0)))
+                    build_matches(
+                        int(params.get("limit", 40)),
+                        float(params.get("min_score", 0)),
+                        only_new=params.get("only_new") == "1",
+                    )
                 )
+            if route == "/api/tracker":
+                return self._json(tracker_state())
         except FileNotFoundError as exc:
             return self._json({"error": str(exc)}, 409)
         except Exception as exc:  # noqa: BLE001
@@ -282,14 +341,27 @@ class Handler(BaseHTTPRequestHandler):
                     seen.setdefault(normalize(skill), skill)
                 return self._json({"skills": sorted(seen.values(), key=str.lower)})
 
+            if self.path == "/api/tracker":
+                data = self._body()
+                offer_id = str(data.get("id") or "").strip()
+                if not offer_id:
+                    return self._json({"error": "brak id oferty"}, 400)
+                tracker.set_status(offer_id, data.get("status"), offer=data.get("offer"), note=data.get("note"))
+                return self._json(tracker_state())
+
+            if self.path == "/api/tracker/note":
+                data = self._body()
+                tracker.set_note(str(data.get("id") or ""), str(data.get("note") or ""))
+                return self._json({"ok": True})
+
             if self.path == "/api/collect":
                 started = COLLECT.start()
                 return self._json({"started": started, **COLLECT.snapshot()})
         except SystemExit as exc:
             # skills_from_linkedin sygnalizuje zly plik przez SystemExit
             return self._json({"error": str(exc)}, 400)
-        except (TypeError, ValueError) as exc:
-            return self._json({"error": str(exc)}, 400)
+        except (TypeError, ValueError, KeyError) as exc:
+            return self._json({"error": str(exc).strip("'\"")}, 400)
         except Exception as exc:  # noqa: BLE001
             traceback.print_exc()
             return self._json({"error": f"{type(exc).__name__}: {exc}"}, 500)
@@ -305,6 +377,9 @@ def main(argv: list[str] | None = None) -> int:
 
     # Wylacznie petla zwrotna. Zwiazanie z 0.0.0.0 wystawiloby czyjes CV
     # i korpus ofert na cala siec lokalna.
+    global SESSION_START
+    SESSION_START = tracker._now()
+
     address = ("127.0.0.1", args.port)
     httpd = ThreadingHTTPServer(address, Handler)
     url = f"http://127.0.0.1:{args.port}"
