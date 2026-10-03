@@ -632,8 +632,14 @@ function lineChart(width, dates, series, opts = {}) {
     }
   }
 
-  // Warstwa trafien: pionowy pas na date, nie celowanie w 8px kropke
-  const bandW = plotW / Math.max(1, dates.length);
+  // Warstwa trafien: pionowy pas na date, nie celowanie w 8px kropke.
+  // Granice pasow leza w polowie miedzy sasiednimi punktami i koncza sie na
+  // krawedziach wykresu. Pasy o stalej szerokosci wystawaly na skrajach
+  // (przy dwoch datach o cwierc wykresu - poziomy scroll na telefonie)
+  // i nakladaly sie, gdy tydzien wypadl i odstepy przestaly byc rowne.
+  const xs = times.map(x);
+  const plotLeft = padLeft;
+  const plotRight = padLeft + plotW;
   const crosshair = svg("line", {
     x1: 0, x2: 0, y1: top, y2: top + plotH,
     stroke: "var(--baseline)", "stroke-width": 1, opacity: 0,
@@ -641,11 +647,13 @@ function lineChart(width, dates, series, opts = {}) {
   root.append(crosshair);
 
   dates.forEach((day, i) => {
-    const cx = x(times[i]);
+    const cx = xs[i];
+    const left = i === 0 ? plotLeft : (xs[i - 1] + cx) / 2;
+    const right = i === dates.length - 1 ? plotRight : (cx + xs[i + 1]) / 2;
     const hit = svg("rect", {
-      x: cx - bandW / 2,
+      x: left,
       y: top,
-      width: bandW,
+      width: Math.max(1, right - left),
       height: plotH,
       fill: "transparent",
       "data-hit": "1",
@@ -810,6 +818,46 @@ function renderHeader(report) {
     report.collection.queries_failed === 0 ? "0 błędów" : `${fmtInt(report.collection.queries_failed)} błędów`
   }`;
   document.getElementById("run-corpus").textContent = fmtInt(report.collection.jobs_in_corpus);
+  renderDataNotice(report);
+}
+
+/** Cotygodniowy przebieg plus zapas na opoznienia harmonogramu GitHuba. */
+const STALE_AFTER_DAYS = 9;
+
+/**
+ * Ostrzezenie o starych albo niepelnych danych. Awaria przebiegu nie moze
+ * byc widoczna tylko w zakladce Actions - kto patrzy na liczby, ma wiedziec,
+ * ze sa nieaktualne albo dziurawe.
+ */
+function renderDataNotice(report) {
+  const notice = document.getElementById("data-notice");
+  const parts = [];
+
+  const measured = new Date(`${report.generated_for}T00:00:00Z`);
+  const ageDays = Math.floor((Date.now() - measured.getTime()) / 86400000);
+  if (ageDays > STALE_AFTER_DAYS) {
+    parts.push([
+      `Ostatni pomiar jest sprzed ${fmtInt(ageDays)} dni. `,
+      "Cotygodniowy przebieg prawdopodobnie się nie udał — liczby mogą nie odpowiadać dzisiejszemu rynkowi.",
+    ]);
+  }
+
+  const failed = report.collection.queries_failed || 0;
+  if (failed > 0) {
+    const total = failed + (report.collection.queries_ok || 0);
+    parts.push([
+      `Ten pomiar jest niepełny: ${fmtInt(failed)} z ${fmtInt(total)} zapytań się nie udało. `,
+      "Technologie, których nie dało się zmierzyć na wszystkich poziomach, są pominięte zamiast pokazane z zaniżonymi liczbami.",
+    ]);
+  }
+
+  if (!parts.length) return;
+  notice.replaceChildren(document.createTextNode("⚠ "));
+  parts.forEach(([lead, rest], i) => {
+    if (i) notice.append(document.createTextNode(" "));
+    notice.append(el("b", null, lead), document.createTextNode(rest));
+  });
+  notice.hidden = false;
 }
 
 function renderHero(report) {

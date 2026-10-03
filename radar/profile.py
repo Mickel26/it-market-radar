@@ -28,7 +28,7 @@ import re
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Iterable
 
 from .queries import CONTRACT_TYPES, SENIORITIES, TECHNOLOGIES, WORK_MODES
 

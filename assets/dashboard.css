@@ -200,6 +200,24 @@ header.intro h1 {
   font-weight: 600;
 }
 
+/* Swiezosc i kompletnosc danych. Nie kolor statusu sam w sobie - ikona
+   i tekst niosa znaczenie, ramka tylko przyciaga wzrok. */
+.data-notice {
+  margin: 16px 0 0;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid #fab219;
+  border-radius: 8px;
+  background: var(--surface-1);
+  color: var(--text-secondary);
+  font-size: 14px;
+  max-width: 72ch;
+}
+
+.data-notice b {
+  color: var(--text-primary);
+}
+
 /* ---------- liczba wiodaca + kafelki ---------- */
 
 .hero {

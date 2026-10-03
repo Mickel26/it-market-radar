@@ -1,0 +1,2 @@
+# Skrypty Windowsa musza miec CRLF, inaczej cmd.exe potrafi zle czytac bloki if/else.
+*.bat text eol=crlf

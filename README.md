@@ -99,7 +99,8 @@ python -m radar.server
 ```
 
 Otwiera `http://127.0.0.1:8765` — profil, zbieranie ofert i wyniki klika się
-w przeglądarce. To jedyna komenda, której potrzebujesz.
+w przeglądarce. To jedyna komenda, której potrzebujesz. Na Windowsie wystarczy
+dwuklik w `matcher.bat` w katalogu projektu.
 
 Serwer słucha **wyłącznie na pętli zwrotnej**. Związanie go z `0.0.0.0`
 wystawiłoby czyjeś CV i korpus ofert na całą sieć lokalną, więc tego nie robi
@@ -158,6 +159,22 @@ Korpus ofert powstaje na runnerze, bo analiza go potrzebuje, i ginie razem z nim
 Do repo idą wyłącznie liczby zagregowane — commitowane z białej listy ścieżek,
 nie przez `git add -A`. Gdyby korpus mimo to trafił do indeksu, przebieg przerywa
 się błędem zamiast go opublikować.
+
+Serwer w becie potrafi zniknąć w połowie przebiegu (tak było 28.09 — połowa
+zapytań poszła w próżnię, a cały tydzień przepadł). Dlatego:
+
+- błąd zgłoszony przez narzędzie serwera jest ponawiany z backoffem jak każdy inny,
+- po 5 błędach pod rząd zbieranie robi 90 s przerwy i zakłada nową sesję,
+  zamiast dalej odpytywać martwy serwer — maksymalnie 3 razy,
+- zapytania, które padły, dostają drugą rundę po minucie,
+- niepełny przebieg i tak jest analizowany i commitowany; technologie
+  zmierzone tylko na części poziomów są pomijane, a nie pokazywane z zaniżonymi
+  liczbami,
+- przebieg niepełny kończy się na czerwono, więc GitHub wysyła maila,
+- dashboard sam ostrzega, gdy dane są starsze niż 9 dni albo pomiar był niepełny.
+
+Manifest dnia trzyma historię wszystkich przebiegów (`runs`), więc kolejny
+przebieg tego samego dnia niczego nie nadpisuje.
 
 Uwaga: GitHub wyłącza zaplanowane workflow po 60 dniach bez żadnej aktywności
 w repo. Jeden ręczny run albo commit resetuje ten licznik.

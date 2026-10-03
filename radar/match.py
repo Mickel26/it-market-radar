@@ -33,7 +33,6 @@ from __future__ import annotations
 import argparse
 import html
 import json
-import math
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
