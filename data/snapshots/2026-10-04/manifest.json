@@ -1,0 +1,26 @@
+{
+  "started_at": "2026-10-04T08:00:57.280687+00:00",
+  "finished_at": "2026-10-04T09:38:26.847963+00:00",
+  "window": "30d",
+  "queries_total": 189,
+  "queries_ok": 189,
+  "queries_failed": 0,
+  "unique_jobs": 2664,
+  "rate_limited": 0,
+  "search_calls": 189,
+  "failures": [],
+  "runs": [
+    {
+      "started_at": "2026-10-04T08:00:57.280687+00:00",
+      "finished_at": "2026-10-04T09:38:26.847963+00:00",
+      "window": "30d",
+      "queries_total": 189,
+      "queries_ok": 189,
+      "queries_failed": 0,
+      "unique_jobs": 2664,
+      "rate_limited": 0,
+      "search_calls": 189,
+      "failures": []
+    }
+  ]
+}
